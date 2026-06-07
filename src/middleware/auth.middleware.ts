@@ -1,105 +1,108 @@
-/// <reference path="../types/global.d.ts" />
+import type { Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { ENV } from '../config/env.config';
+import { HttpStatusCode } from 'axios';
+import UserModel from '../models/user.model';
+import { IAuthRequest, JwtPayload } from '../types';
 
-import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import UserModel from "../modules/users/user.model";
-import { ENV } from "../config/env.config";
-import { HttpStatusCode } from "axios";
-
-
+// ============================================
+// AUTHENTICATE
+// ============================================
 export const authenticate = async (
-    req: Request,
+    req: IAuthRequest,
     res: Response,
     next: NextFunction
-) => {
-
+): Promise<void> => {
     try {
         // Get token from header or cookie
-        const token = req.cookies?.accessToken ||
+        const token =
+            req.cookies?.accessToken ||
             req.header('Authorization')?.replace('Bearer ', '');
 
         if (!token) {
-            return res.status(HttpStatusCode.Unauthorized).json({
+            res.status(HttpStatusCode.Unauthorized).json({
                 success: false,
-                message: "No token provided",
-                code: "NO_TOKEN"
+                message: 'No token provided',
+                code: 'NO_TOKEN',
             });
+            return;
         }
 
         // Verify token
-        const decoded = jwt.verify(
-            token,
-            ENV.JWT.ACCESS_SECRET
-        ) as any;
+        const decoded = jwt.verify(token, ENV.JWT.ACCESS_SECRET) as JwtPayload;
 
         // Find user
-        const user = await UserModel.findById(decoded._id).select('-password');
+        const user = await UserModel.findById(decoded._id).select('-password -refreshToken');
 
         if (!user) {
-            return res.status(HttpStatusCode.Unauthorized).json({
+            res.status(HttpStatusCode.Unauthorized).json({
                 success: false,
-                message: "User no longer exists",
-                code: "USER_NOT_FOUND"
+                message: 'User no longer exists',
+                code: 'USER_NOT_FOUND',
             });
+            return;
         }
 
         if (!user.isActive) {
-            return res.status(HttpStatusCode.Unauthorized).json({
+            res.status(HttpStatusCode.Unauthorized).json({
                 success: false,
-                message: "Account is deactivated",
-                code: "ACCOUNT_DEACTIVATED"
+                message: 'Account is deactivated',
+                code: 'ACCOUNT_DEACTIVATED',
             });
+            return;
         }
 
-        // Attach user to request
+        // Attach user and token to request
         req.user = user;
         req.token = token;
 
         next();
     } catch (error) {
         if (error instanceof jwt.JsonWebTokenError) {
-            return res.status(HttpStatusCode.Unauthorized).json({
+            res.status(HttpStatusCode.Unauthorized).json({
                 success: false,
-                message: "Invalid token. Please log in again.",
-                code: "INVALID_TOKEN"
+                message: 'Invalid token. Please log in again.',
+                code: 'INVALID_TOKEN',
             });
+            return;
         }
 
         if (error instanceof jwt.TokenExpiredError) {
-            return res.status(HttpStatusCode.Unauthorized).json({
+            res.status(HttpStatusCode.Unauthorized).json({
                 success: false,
-                message: "Token expired. Please log in again.",
-                code: "TOKEN_EXPIRED"
+                message: 'Token expired. Please log in again.',
+                code: 'TOKEN_EXPIRED',
             });
+            return;
         }
 
-        // console.error("Authentication error:", error);
-        return res.status(HttpStatusCode.InternalServerError).json({
+        res.status(HttpStatusCode.InternalServerError).json({
             success: false,
-            message: "Authentication failed due to server error.",
-            code: "AUTH_ERROR"
+            message: 'Authentication failed due to server error.',
+            code: 'AUTH_ERROR',
         });
     }
 };
 
-
-
-// Role-based authorization
+// ============================================
+// AUTHORIZE (Role-based)
+// ============================================
 export const authorize = (...roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction) => {
-        console.log('Authorized user', req?.user?.name)
-        if (!req?.user) {
-            return res.status(HttpStatusCode.Unauthorized).json({
+    return (req: IAuthRequest, res: Response, next: NextFunction): void => {
+        if (!req.user) {
+            res.status(HttpStatusCode.Unauthorized).json({
                 success: false,
-                message: 'Authentication required'
+                message: 'Authentication required',
             });
+            return;
         }
 
-        if (!roles.includes(req.user?.role as string)) {
-            return res.status(HttpStatusCode.Forbidden).json({
+        if (!roles.includes(req.user.role as string)) {
+            res.status(HttpStatusCode.Forbidden).json({
                 success: false,
-                message: 'You do not have permission to access this resource'
+                message: 'You do not have permission to access this resource',
             });
+            return;
         }
 
         next();

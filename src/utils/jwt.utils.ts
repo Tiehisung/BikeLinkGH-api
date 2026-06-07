@@ -9,33 +9,7 @@ interface TokenPayload {
     role: string;
 }
 
-export const generateJwtTokens = (payload: TokenPayload) => {
-    // Access token (short-lived)
-    const accessToken = jwt.sign(
-        payload,
-        ENV.JWT.ACCESS_SECRET,
-        {
-            expiresIn: ENV.JWT.ACCESS_EXPIRE as jwt.SignOptions['expiresIn'],
-            issuer: ENV.JWT_ISSUER || 'bunyeni-fc-api',
-            audience: ENV.JWT_AUDIENCE || 'bunyeni-fc-client'
-        }
-
-    );
-
-    // Refresh token (long-lived)
-    const refreshToken = jwt.sign(
-        payload,
-        ENV.JWT.REFRESH_SECRET,
-        {
-            expiresIn: ENV.JWT.REFRESH_EXPIRE as jwt.SignOptions['expiresIn'],
-            issuer: ENV.JWT_ISSUER || 'bunyeni-fc-api',
-            audience: ENV.JWT_AUDIENCE || 'bunyeni-fc-client'
-        }
-    );
-
-    return { accessToken, refreshToken };
-};
-
+ 
 
 export const verifyAccessToken = (token: string): TokenPayload => {
     return jwt.verify(

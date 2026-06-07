@@ -1,22 +1,56 @@
+import { Request } from "express";
+import { IUser } from "../models/user.model";
 
 
-export interface ISelectOptionLV {
-  value: string;
-  label: string;
+// Auth Request with user attached
+export interface IAuthRequest extends Request {
+  user?: IUser; 
+  token?: string;
 }
 
-export type TConvertedFile = {
-  name: string;
-  type: string;
-  path: string;
-  bytes?: number;
-};
+// API Response Types
+export interface IApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  token?: string;
+  user?: Partial<IUser>;
+  pagination?: IPagination
+}
+export interface IPagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  nextPage: number;
+  previousPage: number;
+}
 
+// JWT Payload
+export interface JwtPayload {
+  _id: string;
+}
 
-export interface IDeleteFile {
-  _id?: string; //Trace any saved file data on db
-  public_id: string;
-  resource_type?: string;
+// Hubtel Payment Request
+export interface HubtelPaymentRequest {
+  CustomerName: string;
+  CustomerMsisdn: string;
+  Channel: string;
+  Amount: number;
+  PrimaryCallbackUrl: string;
+  SecondaryCallbackUrl: string;
+  Description: string;
+  ClientReference: string;
+}
+
+// Hubtel Payment Response
+export interface HubtelPaymentResponse {
+  ResponseCode: string;
+  Status: string;
+  TransactionId: string;
+  Data: any;
 }
 
 //Cloudinary
@@ -29,73 +63,7 @@ export enum EPreset {
   KFC_SIGNED = "kfc-signed",
   KFC_UNSIGNED = 'kfc-unsigned'
 };
-export type TResourceType = "image" | "video" | "audio" | "auto";
-// export type TFolders = "images/logos" | "images" | "videos" | "audios";
 
-export type IRecord<T = string | string[] | undefined> = Record<string, T>
-export interface IQueryResponse<T = unknown> {
-  success: boolean;
-  message?: string;
-  error?: string;
-  data?: T;
-  pagination?: IPagination
-}
-export interface IPageProps {
-  searchParams: Promise<Record<string, string | undefined>>;
-  params: Promise<Record<string, string | undefined>>;
-}
 
-export interface IPagination {
-  page: number;
-  limit: number;
-  total: number;
-  pages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-  nextPage: number;
-  previousPage: number;
-}
+export type TSearchKey = 'search' | 'user_search'
 
-export interface IQueryRecords {
-  type?: string;
-  page?: number
-  limit?: number
-  date?: string
-  endDate?: string
-  search?: string
-
-}
-
-export interface IQueryParams extends IBaseQueryParams {
-  [k: string]: any
-}
-
-export interface IBaseQueryParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  status?: string
-  role?: string,
-}
-
-export type TSearchKey =
-  'search'
-  | 'captain_search'
-  | 'player_search'
-  | 'manager_search'
-  | 'match_search'
-  | 'squad_search'
-  | 'sponsor_search'
-  | 'card_search'
-  | 'injury_search'
-  | 'news_search'
-  | 'goal_search'
-  | 'team_search'
-  | 'gallery_search'
-  | 'training_search'
-  | 'transaction_search'
-  | 'log_search'
-  | 'doc_search'
-  | 'highlight_search'
-  | 'user_search'
-  | 'mvp_search'

@@ -2,60 +2,9 @@
 import { Request } from 'express';
 import { cloudinary } from '../config/cloudinary.config';
 import { ICloudinaryFile } from '../types/file.interface';
-
-export const getOptimizedUrl = (publicId: string, options?: any) => {
-    return cloudinary.url(publicId, {
-        quality: 'auto',
-        fetch_format: 'auto',
-        ...options
-    });
-};
-interface IThumbnailOptions {
-    resourceType: 'image' | 'video';
-    width?: number;
-    height?: number;
-    crop?: string;
-}
-/**
- * Generate an optimized Cloudinary thumbnail URL for an image or video.
- *
- * @param publicId - The Cloudinary public ID of the media asset.
- * @param options - Options for generating the thumbnail.
- * @param options.resourceType - The Cloudinary resource type (`image` | `video` | etc.).
- * @param options.width - Desired width in pixels (default: 400).
- * @param options.height - Desired height in pixels (default: 225).
- * @param options.crop - Crop mode for the transformation (default: "fill").
- *
- * For video resources, the URL includes `start_offset: '4'` to get a frame from 4 seconds.
- * For all resources, `quality: 'auto'` is applied.
- *
- * @returns The generated Cloudinary URL for the optimized thumbnail.
- */
-export const getOptimizedThumbnail = (publicId: string, options: IThumbnailOptions) => {
-    const { resourceType, width = 400, height = 225, crop = "fill" } = options
-
-    if (resourceType === 'video') {
-        return cloudinary.url(publicId, {
-            resource_type: 'video',
-            start_offset: '4',
-            width,
-            height,
-            crop,
-            quality: 'auto',
-            format: 'jpg'
-        });
-    }
-
-    return cloudinary.url(publicId, {
-        resource_type: resourceType,
-        width,
-        height,
-        crop,
-        quality: 'auto', 
-        format: 'jpg'
-    });
-};
-
+ 
+ 
+ 
 export const getThumbnailUrl = (publicId: string, width = 400, height = 320) => {
     return cloudinary.url(publicId, {
         width,
