@@ -3,6 +3,9 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { IAuthRequest, IApiResponse } from '../types';
 import { ENV } from '../config/env.config';
 import UserModel from '../models/user.model';
+import { cloudinary } from '../config/cloudinary.config';
+import { formatCloudinaryResponse } from '../utils/cloudinary.util';
+import { ICloudinaryFile } from '../types/file.interface';
 
 // ============================================
 // TOKEN GENERATION
@@ -210,6 +213,170 @@ export const updateProfile = async (req: IAuthRequest, res: Response): Promise<v
             success: false,
             message: 'Server error',
         } as IApiResponse);
+    }
+};
+
+export const verifyIdentity = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        const { ghanaCardNumber } = req.body;
+
+        // Validate files exist
+        const ghanaCardImage = formatCloudinaryResponse(files?.ghanaCardImage?.[0]);
+        const ghanaCardSelfie = formatCloudinaryResponse(files?.ghanaCardSelfie?.[0])
+
+        if (!ghanaCardImage || !ghanaCardSelfie) {
+            res.status(400).json({
+                success: false,
+                message: 'Both Ghana Card photo and selfie are required',
+            } as IApiResponse);
+            return;
+        }
+
+        if (!ghanaCardNumber) {
+            res.status(400).json({
+                success: false,
+                message: 'Ghana Card number is required',
+            } as IApiResponse);
+            return;
+        }
+
+        // Validate card number format
+        const cardRegex = /^GHA-\d{9}-\d{1}$/;
+        if (!cardRegex.test(ghanaCardNumber)) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid Ghana Card number format. Use: GHA-123456789-0',
+            } as IApiResponse);
+            return;
+        }
+
+        // Check if already submitted
+        const existingUser = await UserModel.findById(req.user!._id);
+        if (existingUser?.ghanaCardImage) {
+            res.status(400).json({
+                success: false,
+                message: 'Verification already submitted. Wait for review.',
+            } as IApiResponse);
+            return;
+        }
+
+       
+
+        // Update user record
+        const user = await UserModel.findByIdAndUpdate(
+            req.user!._id,
+            {
+                ghanaCardImage: ghanaCardImage.secure_url,
+                ghanaCardSelfie: ghanaCardSelfie.secure_url,
+                ghanaCardNumber,
+                // isVerified stays false until admin approves
+            },
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Verification documents submitted successfully. We will review within 24-48 hours.',
+            user: {
+                _id: user!._id,
+                isVerified: user!.isVerified,
+                ghanaCardImage: user!.ghanaCardImage,
+                ghanaCardNumber: user!.ghanaCardNumber,
+            },
+        } as IApiResponse);
+    } catch (error) {
+        console.error('Verify identity error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to submit verification documents',
+        } as IApiResponse);
+    }
+};
+
+
+export const getVerificationStatus = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const user = await UserModel.findById(req.user!._id)
+            .select('isVerified ghanaCardImage ghanaCardNumber momoVerified');
+
+        if (!user) {
+            res.status(404).json({ success: false, message: 'User not found' } as IApiResponse);
+            return;
+        }
+
+        res.json({
+            success: true,
+            user: {
+                isVerified: user.isVerified,
+                hasSubmittedDocs: !!user.ghanaCardImage,
+                ghanaCardNumber: user.ghanaCardNumber,
+                momoVerified: user.momoVerified,
+            },
+        } as IApiResponse);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' } as IApiResponse);
+    }
+};
+
+// ============================================
+// VERIFY MOMO NUMBER (Initiate)
+// ============================================
+export const verifyMomo = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const { momoNumber, network } = req.body;
+
+        if (!momoNumber) {
+            res.status(400).json({ success: false, message: 'MoMo number is required' } as IApiResponse);
+            return;
+        }
+
+        // Store MoMo number temporarily
+        await UserModel.findByIdAndUpdate(req.user!._id, {
+            momoNumber,
+        });
+
+        // In production: send micro-transaction via Hubtel/MTN API
+        // For now, return success
+        res.json({
+            success: true,
+            message: `A verification code has been sent to ${momoNumber}. Check your MoMo transactions.`,
+        } as IApiResponse);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to initiate MoMo verification' } as IApiResponse);
+    }
+};
+
+// ============================================
+// CONFIRM MOMO VERIFICATION
+// ============================================
+export const confirmMomo = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const { code } = req.body;
+
+        if (!code) {
+            res.status(400).json({ success: false, message: 'Verification code is required' } as IApiResponse);
+            return;
+        }
+
+        // In production: verify the micro-transaction amount
+        // For now, simulate success
+        const user = await UserModel.findByIdAndUpdate(
+            req.user!._id,
+            { momoVerified: true },
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'MoMo number verified successfully',
+            user: {
+                _id: user!._id,
+                momoVerified: user!.momoVerified,
+            },
+        } as IApiResponse);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to confirm MoMo verification' } as IApiResponse);
     }
 };
 

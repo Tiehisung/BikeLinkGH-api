@@ -90,3 +90,25 @@ const getFileFormat = (filename: string): string => {
 };
 
 
+export function extractPublicIdFromUrl(url:string) {
+    // Split by '/upload/' and take the part after it
+    const uploadIndex = url?.indexOf('/upload/');
+    if (uploadIndex === -1) return null;
+
+    let path = url?.substring(uploadIndex + 8); // Remove '/upload/'
+
+    // Remove version prefix if present (e.g., 'v1234567890/')
+    const parts = path?.split('/');
+    if (parts && parts[0].startsWith('v')) {
+        parts.shift(); // Remove the version part
+    }
+
+    // Join remaining parts and remove file extension
+    let publicId = parts?.join('/');
+    const lastDotIndex = publicId?.lastIndexOf('.');
+    if (lastDotIndex !== -1) {
+        publicId = publicId?.substring(0, lastDotIndex);
+    }
+
+    return publicId;
+}

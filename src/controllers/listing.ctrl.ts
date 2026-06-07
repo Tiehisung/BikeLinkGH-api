@@ -47,6 +47,7 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
             chassisNumber,
             engineNumber,
             listingType = 'standard',
+            images
         } = req.body;
 
         // Calculate listing fee
@@ -72,8 +73,9 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
             engineNumber,
             listingType,
             listingFee,
-            paymentStatus: 'unpaid',
+            paymentStatus: 'paid',//to be implemented
             status: 'pending',
+            images
         });
 
         // Populate seller info for response

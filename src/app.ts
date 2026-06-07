@@ -7,12 +7,14 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { ENV } from './config/env.config';
- 
+
 import authRoutes from './routes/auth.routes';
 import listingsRoutes from './routes/listings.routes';
 import paymentsRoutes from './routes/payments.routes';
 import inspectionsRoutes from './routes/inspections.routes';
 import adminRoutes from './routes/admin.routes';
+import uploadRoutes from './routes/upload.routes'
+
 import { notFound, errorHandler } from './middleware/error-handler.middleware';
 import { runUpdate } from './runUpdate';// server/app.ts
 import { IAuthRequest } from './types';
@@ -68,7 +70,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
 
- 
+
 
 // ==================== HEALTH CHECK ====================
 app.get('/health', (req: IAuthRequest, res: Response) => {
@@ -91,16 +93,17 @@ app.get('/', (req: IAuthRequest, res: Response) => {
         health: '/health'
     });
 });
- 
+
 app.get('/test-api/update', runUpdate);
 
 // ==================== API ROUTES ====================
 app.use('/api/auth', authRoutes);
-app.use('/api/listings', listingsRoutes);     
-app.use('/api/payments', paymentsRoutes);     
-app.use('/api/inspections', inspectionsRoutes); 
-app.use('/api/admin', adminRoutes);          
- 
+app.use('/api/listings', listingsRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/inspections', inspectionsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
+
 
 // ==================== ERROR HANDLING ====================
 // 404 handler
