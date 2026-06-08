@@ -1,7 +1,8 @@
 
 // src/types/global.d.ts
 import mongoose from 'mongoose';
-import { IUser } from './user.interface';
+import { IUser } from '../models/user.model';
+
 
 
 declare global {
