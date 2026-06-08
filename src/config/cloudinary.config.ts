@@ -6,6 +6,11 @@ import { ENV } from './env.config';
 import { getSafeName } from '../utils/sanitizer.utils';
 import { getDefaultCldFolder } from '../utils/cloudinary.util';
 
+/**
+ * if you're using CloudinaryStorage, then multer IS uploading to Cloudinary automatically! 
+ * In that case, file.path or file.secure_url will already contain the Cloudinary URL.
+ */
+
 // Configure Cloudinary
 cloudinary.config({
     cloud_name: ENV.CLOUDINARY.NAME,
@@ -168,5 +173,13 @@ export const uploadMixed = multer({
     { name: 'video', maxCount: 1 }
 ]);
 
+export const uploadVerificationDocs = multer({
+    storage: imageStorage, // Reuse your existing imageStorage
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
+    fileFilter: imageFilter,
+}).fields([
+    { name: 'ghanaCardImage', maxCount: 1 },
+    { name: 'ghanaCardSelfie', maxCount: 1 },
+]);
 // Export cloudinary instance for direct use
 export { cloudinary };

@@ -1,5 +1,5 @@
 // src/app.ts
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -7,38 +7,17 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { ENV } from './config/env.config';
-import { migrateAllCollections } from './data/migration';
 
-// Import routes
-import userRoutes from './modules/users/user.routes';
-import teamRoutes from './modules/teams/team.routes';
-import matchRoutes from './modules/matches/match.routes';
-import goalRoutes from './modules/matches/goals/goal.routes';
-import cardRoutes from './modules/matches/cards/card.routes';
-import injuryRoutes from './modules/matches/injuries/injury.routes';
-import mvpRoutes from './modules/matches/mvps/mvp.routes';
-import squadRoutes from './modules/squad/squad.route';
-import newsRoutes from './modules/news/news.routes';
-import galleryRoutes from './modules/media/galleries/gallery.routes';
-import documentRoutes from './modules/media/documents/docs.routes';
-import highlightRoutes from './modules/media/highlights/highlight.routes';
-import sponsorRoutes from './modules/sponsors/sponsor.routes';
-import donationRoutes from './modules/sponsors/donations/donation.routes';
-import trainingRoutes from './modules/training/training.routes';
-import featureRoutes from './modules/features/feature.routes';
-import captaincyRoutes from './modules/captains/captain.routes';
-import staffRoutes from './modules/staff/staff.routes';
-import logRoutes from './modules/log/logs.routes';
-import archiveRoutes from './modules/archives/archive.route';
-import metricRoutes from './modules/metrics/metrics.routes';
-import authRoutes from './modules/auth/auth.routes';
-import searchRoutes from './modules/search/search.routes';
-import uploadRoutes from './modules/upload/upload.routes';
-import { requestLogger } from './middleware/logger.middleware';
+import authRoutes from './routes/auth.routes';
+import listingsRoutes from './routes/listings.routes';
+import paymentsRoutes from './routes/payments.routes';
+import inspectionsRoutes from './routes/inspections.routes';
+import adminRoutes from './routes/admin.routes';
+import uploadRoutes from './routes/upload.routes'
+
 import { notFound, errorHandler } from './middleware/error-handler.middleware';
 import { runUpdate } from './runUpdate';// server/app.ts
-import ogRoutes from "./modules/og/og.routes";
-import seoRoutes from "./modules/seo/seo.routes";
+import { IAuthRequest } from './types';
 
 // Import middleware
 
@@ -55,7 +34,7 @@ app.use(helmet({
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [process.env.FRONTEND_URL as string || 'https://bunyenifc.vercel.app'],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [process.env.FRONTEND_URL as string || 'https://mototrustgh.vercel.app'],
     credentials: true,
     optionsSuccessStatus: 200,
     exposedHeaders: ['set-cookie']
@@ -91,11 +70,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
 
-// ==================== LOGGING ====================
-app.use(requestLogger);
+
 
 // ==================== HEALTH CHECK ====================
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (req: IAuthRequest, res: Response) => {
     console.log(req?.user)
     res.status(200).json({
         status: 'OK',
@@ -106,60 +84,25 @@ app.get('/health', (req: Request, res: Response) => {
     });
 });
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (req: IAuthRequest, res: Response) => {
     console.log(req?.user)
     res.status(200).json({
-        message: 'Bunyeni FC API Server',
+        message: 'Mototrust API Server',
         version: '1.0.0',
         documentation: '/api/docs',
         health: '/health'
     });
 });
-app.get('/test-api/migrate', async (req: Request, res: Response) => {
-    const collections = await migrateAllCollections('mongodb+srv://konjiehifc:konfc@cluster-kfc.7vqlpoe.mongodb.net/kfc-db?appName=Cluster-kfc', ENV.MONGO_URI)
-    res.status(200).json({
-        message: 'Data migration api',
-        data: collections
-    });
-});
-app.get('/test-api/update', runUpdate);
 
-//Removes /favicon.ico noisy logs.
-// app.get("/favicon.ico", (_, res) => res.status(204).end());
+app.get('/test-api/update', runUpdate);
 
 // ==================== API ROUTES ====================
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-
-//Cold start improvement is massive for serverless. Only import player routes when needed.
-app.use("/api/players", async (req, res, next) => {
-    const routes = (await import("./modules/players/player.routes")).default;
-    return routes(req, res, next);
-});
-app.use('/api/teams', teamRoutes);
-app.use('/api/matches', matchRoutes);
-app.use('/api/goals', goalRoutes);
-app.use('/api/cards', cardRoutes);
-app.use('/api/injuries', injuryRoutes);
-app.use('/api/mvps', mvpRoutes);
-app.use('/api/squads', squadRoutes);
-app.use('/api/news', newsRoutes);
-app.use('/api/galleries', galleryRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/highlights', highlightRoutes);
-app.use('/api/sponsors', sponsorRoutes);
-app.use('/api/donations', donationRoutes);
-app.use('/api/training', trainingRoutes);
-app.use('/api/features', featureRoutes);
-app.use('/api/captains', captaincyRoutes);
-app.use('/api/staff', staffRoutes);
+app.use('/api/listings', listingsRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/inspections', inspectionsRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/logs', logRoutes);
-app.use('/api/archives', archiveRoutes);
-app.use('/api/metrics', metricRoutes);
-app.use('/api/search', searchRoutes);
-app.use("/api/og", ogRoutes);    // Returns PNG images
-app.use("/seo", seoRoutes);       // Returns HTML with meta tags
 
 
 // ==================== ERROR HANDLING ====================
