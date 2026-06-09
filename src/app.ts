@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 import { ENV } from './config/env.config';
 
 import authRoutes from './routes/auth.routes';
@@ -25,6 +26,9 @@ const app: Application = express();
 
 // Trust proxy (needed for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
+
+// To serve static assets from public such as favicon
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== SECURITY MIDDLEWARE ====================
 // Helmet for security headers
