@@ -28,7 +28,7 @@ const app: Application = express();
 app.set('trust proxy', 1);
 
 // To serve static assets from public such as favicon
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // ==================== SECURITY MIDDLEWARE ====================
 // Helmet for security headers
