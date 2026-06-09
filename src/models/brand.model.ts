@@ -70,7 +70,6 @@ const brandSchema = new Schema<IBrand>(
 // INDEXES
 // ============================================
 brandSchema.index({ isActive: 1, displayOrder: 1 });
-brandSchema.index({ slug: 1 });
 brandSchema.index({ tier: 1 });
 
 // ============================================

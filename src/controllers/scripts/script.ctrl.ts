@@ -1,14 +1,15 @@
 import { Request, Response } from 'express';
 import { IApiResponse } from '../../types';
-import { seedBrands } from './seedBrands';
+// import { seedBrands } from './seedBrands';
+// import { seedLocations } from './seedLocations';
 
 export const scriptCtrl = async (req: Request, res: Response): Promise<void> => {
+    // const result = await seedLocations()
     try {
-        const result = await seedBrands()
         res.status(201).json({
             success: true,
             message: 'Script successful',
-            data: result
+            data: 'result'
         } as IApiResponse);
     } catch (error: any) {
         if (error.name === 'ValidationError') {

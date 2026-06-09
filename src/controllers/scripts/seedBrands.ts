@@ -1,7 +1,4 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import mongoose from 'mongoose';
+ 
 import { motorcycleBrands } from '../../data/brands.seed';
 import BrandModel from '../../models/brand.model';
 
