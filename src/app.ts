@@ -15,6 +15,8 @@ import paymentsRoutes from './routes/payments.routes';
 import inspectionsRoutes from './routes/inspections.routes';
 import adminRoutes from './routes/admin.routes';
 import uploadRoutes from './routes/upload.routes'
+import scriptRoutes from './routes/script.routes'
+import brandRoutes from './routes/brand.routes';
 
 import { notFound, errorHandler } from './middleware/error-handler.middleware';
 import { runUpdate } from './runUpdate';// server/app.ts
@@ -87,7 +89,7 @@ app.get('/health', (req: IAuthRequest, res: Response) => {
         mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
     });
 });
-
+ 
 app.get('/', (req: IAuthRequest, res: Response) => {
     console.log(req?.user)
     res.status(200).json({
@@ -102,12 +104,13 @@ app.get('/test-api/update', runUpdate);
 
 // ==================== API ROUTES ====================
 app.use('/api/auth', authRoutes);
+app.use('/api/script', scriptRoutes);
 app.use('/api/listings', listingsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/inspections', inspectionsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
-
+app.use('/api/brands', brandRoutes);
 
 // ==================== ERROR HANDLING ====================
 // 404 handler
@@ -119,3 +122,6 @@ app.use(errorHandler);
 // Export for serverless deployment (Vercel)
 export default app;
 
+
+
+ 
