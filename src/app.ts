@@ -18,6 +18,7 @@ import uploadRoutes from './routes/upload.routes'
 import scriptRoutes from './routes/script.routes'
 import brandRoutes from './routes/brand.routes';
 import locationRoutes from './routes/location.routes';
+import userRoutes from './routes/user.routes';
 
 import { notFound, errorHandler } from './middleware/error-handler.middleware';
 import { runUpdate } from './runUpdate';// server/app.ts
@@ -113,6 +114,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/users', userRoutes);
 
 // ==================== ERROR HANDLING ====================
 // 404 handler
