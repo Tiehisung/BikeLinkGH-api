@@ -4,7 +4,7 @@ import { IUser } from "../models/user.model";
 
 // Auth Request with user attached
 export interface IAuthRequest extends Request {
-  user?: IUser; 
+  user?: IUser;
   token?: string;
 }
 
@@ -13,9 +13,10 @@ export interface IApiResponse<T = any> {
   success: boolean;
   message?: string;
   data?: T;
+  pagination?: IPagination
   token?: string;
   user?: Partial<IUser>;
-  pagination?: IPagination
+  [x: string]: any
 }
 export interface IPagination {
   page: number;

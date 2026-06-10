@@ -499,6 +499,7 @@ export const contactSeller = async (req: IAuthRequest, res: Response): Promise<v
                 sellerName: (listing.seller as any).fullName,
                 sellerPhone: (listing.seller as any).phoneNumber,
                 listingTitle: `${listing.brand} ${listing.model || ''} - GHS ${listing.price}`,
+                warning:''
             },
         } as IApiResponse);
     } catch (error) {
