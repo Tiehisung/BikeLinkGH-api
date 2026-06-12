@@ -2,7 +2,7 @@ import { Response } from 'express';
 import ListingModel from '../models/listing.model';
 import UserModel from '../models/user.model';
 import InspectionModel from '../models/inspection.model';
-import PaymentModel from '../models/payment.model';
+import PaymentModel, { EPaymentStatus } from '../models/payment.model';
 import { IAuthRequest, IApiResponse } from '../types';
 
 // ============================================
@@ -24,7 +24,7 @@ export const getDashboardStats = async (req: IAuthRequest, res: Response): Promi
             ListingModel.countDocuments(),
             ListingModel.countDocuments({ status: 'pending' }),
             ListingModel.countDocuments({ status: 'approved' }),
-            PaymentModel.countDocuments({ status: 'success' }),
+            PaymentModel.countDocuments({ status: 'success' as EPaymentStatus }),
             InspectionModel.countDocuments({ status: { $in: ['scheduled', 'in_progress'] } }),
             PaymentModel.aggregate([
                 { $match: { status: 'success' } },

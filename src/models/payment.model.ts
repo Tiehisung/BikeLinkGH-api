@@ -1,35 +1,67 @@
 import mongoose, { Schema } from 'mongoose';
 import { Types } from 'mongoose';
 
- export interface IPayment extends Document {
-     listing?: Types.ObjectId;
-     payer: Types.ObjectId;
-     recipient?: Types.ObjectId;
-     amount: number;
-     fee: number;
-     momoNumber: string;
-     network: MobileNetwork;
-     paymentType: PaymentType;
-     status: TransactionStatus;
-     hubtelTransactionId?: string;
-     momoReference?: string;
-     metadata?: Record<string, any>;
-     createdAt: Date;
-     completedAt?: Date;
- }
+export enum EPaymentType {
+    LISTING_FEE = 'listing_fee',
+    PREMIUM_UPGRADE = 'premium_upgrade',
+    VERIFICATION_FEE = 'verification_fee',
+    ESCROW_DEPOSIT = 'escrow_deposit',
+    ESCROW_RELEASE = 'escrow_release',
+}
 
-export type MobileNetwork = 'MTN' | 'AirtelTigo' | 'Vodafone';
-export type PaymentType = 'listing_fee' | 'premium_upgrade' | 'verification_fee' | 'escrow_deposit' | 'escrow_release';
-export type TransactionStatus = 'pending' | 'processing' | 'success' | 'failed' | 'refunded';
+export enum EPaymentStatus {
+    PENDING = 'pending',
+    PROCESSING = 'processing',
+    PAID = 'paid',
+    FAILED = 'failed',
+    REFUNDED = 'refunded',
+}
+
+export enum EMobileNetwork {
+    MTN = 'MTN',
+    AIRTEL_TIGO = 'AirtelTigo',
+    VODAFONE = 'Vodafone',
+}
+
+export enum EPaymentChannel {
+    MOBILE_MONEY = 'mobile_money',
+    CARD = 'card',
+    BANK_TRANSFER = 'bank_transfer',
+    USSD = 'ussd',
+    QR = 'qr',
+    BANK = 'bank',
+}
+export interface IPayment extends Document {
+    _id: Types.ObjectId;
+    listing?: Types.ObjectId;
+    payer: Types.ObjectId;
+    recipient?: Types.ObjectId;
+    amount: number;
+    fee: number;
+    totalAmount: number;
+    paymentType: EPaymentType;
+    status: EPaymentStatus;
+    momoNumber: string;
+    network: EMobileNetwork;
+    paystackReference?: string;
+    paystackTransactionId?: number;
+    paystackChannel?: EPaymentChannel;
+    paystackGatewayResponse?: string;
+
+    hubtelTransactionId?: string;
+    momoReference?: string;
+    metadata: any;
+    createdAt: Date;
+    updatedAt: Date;
+    completedAt?: Date;
+}
+
 
 const paymentSchema = new Schema<IPayment>(
     {
         listing: {
             type: Schema.Types.ObjectId,
             ref: 'Listing',
-            required: function (this: IPayment) {
-                return ['listing_fee', 'premium_upgrade', 'escrow_deposit', 'escrow_release'].includes(this.paymentType);
-            },
         },
         payer: {
             type: Schema.Types.ObjectId,
@@ -43,35 +75,42 @@ const paymentSchema = new Schema<IPayment>(
         amount: {
             type: Number,
             required: true,
-            min: [0, 'Amount cannot be negative'],
+            min: 0,
         },
         fee: { type: Number, default: 0 },
-        momoNumber: {
-            type: String,
-            required: true,
-        },
+        momoNumber: { type: String, required: true },
         network: {
             type: String,
-            enum: ['MTN', 'AirtelTigo', 'Vodafone'],
+            enum: Object.values(EMobileNetwork),
             required: true,
         },
         paymentType: {
             type: String,
-            enum: ['listing_fee', 'premium_upgrade', 'verification_fee', 'escrow_deposit', 'escrow_release'],
+            enum: Object.values(EPaymentType),
             required: true,
         },
         status: {
             type: String,
-            enum: ['pending', 'processing', 'success', 'failed', 'refunded'],
-            default: 'pending',
+            enum: Object.values(EPaymentStatus),
+            default: EPaymentStatus.PENDING,
         },
-        hubtelTransactionId: String,
-        momoReference: String,
-        metadata: Schema.Types.Mixed,
-        completedAt: Date,
+        // Paystack-specific fields
+        paystackReference: { type: String, unique: true, sparse: true },
+        paystackTransactionId: { type: Number },
+        paystackChannel: { type: String },
+        paystackGatewayResponse: { type: String },
+        // Legacy
+        hubtelTransactionId: { type: String },
+        momoReference: { type: String },
+        metadata: { type: Schema.Types.Mixed },
+        completedAt: { type: Date },
     },
     { timestamps: true }
 );
+
+// Indexes
+paymentSchema.index({ payer: 1, createdAt: -1 });
+paymentSchema.index({ status: 1 });
 
 const PaymentModel = mongoose.model<IPayment>('Payment', paymentSchema);
 export default PaymentModel;

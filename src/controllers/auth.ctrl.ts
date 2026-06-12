@@ -3,9 +3,7 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { IAuthRequest, IApiResponse } from '../types';
 import { ENV } from '../config/env.config';
 import UserModel from '../models/user.model';
-import { cloudinary } from '../config/cloudinary.config';
 import { formatCloudinaryResponse } from '../utils/cloudinary.util';
-import { ICloudinaryFile } from '../types/file.interface';
 
 // ============================================
 // TOKEN GENERATION
@@ -196,6 +194,7 @@ export const updateProfile = async (req: IAuthRequest, res: Response): Promise<v
             region?: string;
             town?: string;
         };
+
 
         const user = await UserModel.findByIdAndUpdate(
             req.user?._id,

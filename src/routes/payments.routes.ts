@@ -1,19 +1,24 @@
 import { Router } from 'express';
 import {
-    payListingFee,
-    confirmPayment,
-    getPaymentStatus,
+    initiateMobileMoneyPayment,
+    initiateCheckout,
+    paystackWebhook,
+    verifyPayment,
     getPaymentHistory,
-} from '../controllers/payment.ctrl';
+    getPaymentById,
+} from '../controllers/payment.paystack.ctrl';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.use(authenticate);
+// Public webhook (no auth)
+router.post('/webhook', paystackWebhook);
 
-router.post('/listing-fee', payListingFee);
-router.post('/confirm', confirmPayment);
-router.get('/history', getPaymentHistory);
-router.get('/:id/status', getPaymentStatus);
+// Protected routes
+router.post('/pay', authenticate, initiateMobileMoneyPayment);
+router.post('/checkout', authenticate, initiateCheckout);
+router.get('/verify/:reference', authenticate, verifyPayment);
+router.get('/history', authenticate, getPaymentHistory);
+router.get('/:id', authenticate, getPaymentById);
 
 export default router;

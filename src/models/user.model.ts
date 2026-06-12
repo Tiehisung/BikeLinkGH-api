@@ -59,7 +59,6 @@ const userSchema = new Schema({
     // Location
     region: {
         type: String,
-        enum: ['Upper West', 'Upper East', 'Northern', 'Savannah', 'North East', 'Other']
     },
     town: {
         type: String
@@ -108,14 +107,14 @@ export interface IUser extends Document {
     fullName: string;
     phoneNumber: string;
     password: string;
-    role: 'seller' | 'buyer' | 'admin';
+    role: EUserRole
     isVerified: boolean;
     ghanaCardImage?: string;
     ghanaCardSelfie?: string;
     ghanaCardNumber?: string;
     momoNumber?: string;
     momoVerified: boolean;
-    region?: 'Upper West' | 'Upper East' | 'Northern' | 'Savannah' | 'North East' | 'Other';
+    region?: string
     town?: string;
     isActive: boolean;
     createdAt: Date;

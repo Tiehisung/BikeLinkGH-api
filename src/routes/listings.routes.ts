@@ -10,6 +10,8 @@ import {
     uploadListingImages,
     uploadListingDocument,
     contactSeller,
+    getUnpaidListings,
+    retryListingPayment,
 } from '../controllers/listing.ctrl';
 import { authenticate } from '../middleware/auth.middleware';
 import { uploadMultipleImages, uploadDocument } from '../config/cloudinary.config';
@@ -35,5 +37,8 @@ router.post('/:id/document', uploadDocument, uploadListingDocument);
 
 // Contact
 router.post('/:id/contact', contactSeller);
+
+router.get('/unpaid', authenticate, getUnpaidListings);
+router.get('/:listingId/retry-payment', authenticate, retryListingPayment);
 
 export default router;
