@@ -123,7 +123,7 @@ export const hubtelWebhook = async (req: IAuthRequest, res: Response): Promise<v
         }
 
         if (Status === 'Success') {
-            payment.status = EPaymentStatus.SUCCESS;
+            payment.status = EPaymentStatus.PAID;
             payment.completedAt = new Date();
 
             // Update listing payment status
@@ -162,8 +162,8 @@ export const checkPaymentStatus = async (req: IAuthRequest, res: Response): Prom
         if (payment.hubtelTransactionId) {
             const status = await hubtelService.checkPaymentStatus(payment.hubtelTransactionId);
 
-            if (status.status === 'completed' && payment.status !== 'success') {
-                payment.status =EPaymentStatus.SUCCESS
+            if (status.status === 'completed' && payment.status !== 'paid') {
+                payment.status =EPaymentStatus.PAID
                 payment.completedAt = new Date();
 
                 if (payment.listing) {
