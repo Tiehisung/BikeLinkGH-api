@@ -18,8 +18,8 @@ export const ENV = {
         ACCESS_EXPIRE: env.JWT_ACCESS_EXPIRE || '1h',
         REFRESH_SECRET: env.JWT_REFRESH_SECRET as string,
         REFRESH_EXPIRE: env.JWT_REFRESH_EXPIRE || '30d',
-        ISSUER: 'mototrust-api',
-        AUDIENCE: 'mototrust-client',
+        ISSUER: 'motomartgh-api',
+        AUDIENCE: 'motomartgh-client',
     },
 
     // Cookie
@@ -41,5 +41,10 @@ export const ENV = {
         CLIENT_ID: env.HUBTEL_CLIENT_ID as string,
         CLIENT_SECRET: env.HUBTEL_CLIENT_SECRET as string,
         MERCHANT_ID: env.HUBTEL_MERCHANT_ID as string,
+    },
+    PAYSTACK: {
+        SECRET_KEY: env.PAYSTACK_SECRET_KEY as string,
+        PUBLIC_KEY: env.PAYSTACK_PUBLIC_KEY as string,
+        WEBHOOK_SECRET: env.PAYSTACK_WEBHOOK_SECRET as string,
     },
 } as const;

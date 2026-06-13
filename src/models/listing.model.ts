@@ -1,51 +1,78 @@
 import mongoose, { Schema } from 'mongoose';
 import { IUser } from './user.model';
 import { Types } from 'mongoose';
+import { EPaymentStatus } from './payment.model';
 
- export interface IListing  {
-     _id: Types.ObjectId;
-     seller: Types.ObjectId | IUser;
-     brand: BikeBrand;
-     model?: string;
-     year?: number;
-     mileage?: number;
-     engineCapacity?: number;
-     condition: BikeCondition;
-     price: number;
-     priceNegotiable: boolean;
-     location: string;
-     description?: string;
-     reasonForSelling?: string;
-     images: string[];
-     videoUrl?: string;
-     hasDocuments: boolean;
-     documentType?: DocumentType;
-     documentImage?: string;
-     chassisNumber?: string;
-     engineNumber?: string;
-     listingType: ListingType;
-     listingFee?: number;
-     paymentStatus: PaymentStatus;
-     paymentReference?: string;
-     status: ListingStatus;
-     adminNotes?: string;
-     reviewedBy?: Types.ObjectId;
-     reviewedAt?: Date;
-     isPhysicallyVerified: boolean;
-     inspectionId?: Types.ObjectId;
-     viewCount: number;
-     inquiryCount: number;
-     createdAt: Date;
-     updatedAt: Date;
-     expiresAt: Date;
- }
+export interface IListing {
+    _id: Types.ObjectId;
+    seller: Types.ObjectId | IUser;
+    brand: string;
+    model?: string;
+    year?: number;
+    mileage?: number;
+    engineCapacity?: number;
+    condition: `${EBikeCondition}`;
+    price: number;
+    priceNegotiable: boolean;
+    location: string;
+    description?: string;
+    reasonForSelling?: string;
+    images: string[];
+    videoUrl?: string;
+    hasDocuments: boolean;
+    documentType?: `${EDocumentType}`;
+    documentImage?: string;
+    chassisNumber?: string;
+    engineNumber?: string;
+    listingType: `${EListingType}`;
+    listingFee?: number;
+    paymentStatus: `${EPaymentStatus}`;
+    paymentReference?: string;
+    status: `${EListingStatus}`;
+    adminNotes?: string;
+    reviewedBy?: Types.ObjectId;
+    reviewedAt?: Date;
+    isPhysicallyVerified: boolean;
+    inspectionId?: Types.ObjectId;
+    viewCount: number;
+    inquiryCount: number;
+    createdAt: Date;
+    updatedAt: Date;
+    expiresAt: Date;
+}
 
-export type BikeBrand = 'Haojue' | 'Bajaj' | 'Royal' | 'Honda' | 'Yamaha' | 'TVS' | 'KTM' | 'Kawasaki' | 'Suzuki' | 'Other';
-export type BikeCondition = 'Excellent' | 'Good' | 'Fair' | 'Needs Repair';
-export type DocumentType = 'Original Registration' | 'Duplicate Registration' | 'Receipt Only' | 'None' | '';
-export type ListingType = 'standard' | 'premium';
-export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
-export type ListingStatus = 'pending' | 'approved' | 'rejected' | 'sold' | 'expired';
+export enum EBikeCondition {
+    Excellent = 'Excellent',
+    Good = 'Good',
+    Fair = 'Fair',
+    NeedsRepair = 'Needs Repair',
+}
+
+export enum EDocumentType {
+    OriginalRegistration = 'Original Registration',
+    DuplicateRegistration = 'Duplicate Registration',
+    ReceiptOnly = 'Receipt Only',
+    None = 'None',
+    Empty = '',
+}
+
+export enum EListingType {
+    Standard = 'standard',
+    Premium = 'premium',
+}
+
+
+export enum EListingStatus {
+    Pending = 'pending',
+    Approved = 'approved',
+    Rejected = 'rejected',
+    Sold = 'sold',
+    Expired = 'expired',
+}
+
+// Convert all enums to union types
+export type TBikeCondition = `${EBikeCondition}`;
+
 
 const listingSchema = new Schema<IListing>(
     {
@@ -57,7 +84,6 @@ const listingSchema = new Schema<IListing>(
         brand: {
             type: String,
             required: [true, 'Brand is required'],
-            enum: ['Haojue', 'Bajaj', 'Royal', 'Honda', 'Yamaha', 'TVS', 'KTM', 'Kawasaki', 'Suzuki', 'Other'],
         },
         model: String,
         year: Number,
@@ -66,7 +92,7 @@ const listingSchema = new Schema<IListing>(
         condition: {
             type: String,
             required: [true, 'Condition is required'],
-            enum: ['Excellent', 'Good', 'Fair', 'Needs Repair'],
+            enum: Object.values(EBikeCondition),
         },
         price: {
             type: Number,
@@ -85,26 +111,26 @@ const listingSchema = new Schema<IListing>(
         hasDocuments: { type: Boolean, default: false },
         documentType: {
             type: String,
-            enum: ['Original Registration', 'Duplicate Registration', 'Receipt Only', 'None', ''],
+            enum: Object.values(EDocumentType),
         },
         documentImage: String,
         chassisNumber: String,
         engineNumber: String,
         listingType: {
             type: String,
-            enum: ['standard', 'premium'],
+            enum: Object.values(EListingType),
             default: 'standard',
         },
         listingFee: Number,
         paymentStatus: {
             type: String,
-            enum: ['unpaid', 'paid', 'refunded'],
-            default: 'unpaid',
+            enum: Object.values(EPaymentStatus),
+            default: EPaymentStatus.PENDING,
         },
         paymentReference: String,
         status: {
             type: String,
-            enum: ['pending', 'approved', 'rejected', 'sold', 'expired'],
+            enum: Object.values(EListingStatus),
             default: 'pending',
         },
         adminNotes: String,

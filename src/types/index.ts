@@ -54,17 +54,5 @@ export interface HubtelPaymentResponse {
   Data: any;
 }
 
-//Cloudinary
-export enum EPresetType {
-  AUTHENTICATED = "authenticated",
-  UNAUTHENTICATED = "unauthenticated"
-}
-
-export enum EPreset {
-  KFC_SIGNED = "kfc-signed",
-  KFC_UNSIGNED = 'kfc-unsigned'
-};
-
-
-export type TSearchKey = 'search' | 'user_search'
-
+ 
+ 

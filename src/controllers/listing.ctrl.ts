@@ -1,8 +1,10 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
-import ListingModel from '../models/listing.model';
+import ListingModel, { EListingStatus } from '../models/listing.model';
 import UserModel from '../models/user.model';
 import { IAuthRequest, IApiResponse } from '../types';
+import { EPaymentStatus } from '../models/payment.model';
+import { EPAYMENT_FEES } from '../data/payment';
 
 // ============================================
 // LISTING FEE CONSTANTS
@@ -73,8 +75,8 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
             engineNumber,
             listingType,
             listingFee,
-            paymentStatus: 'paid',//to be implemented
-            status: 'pending',
+            paymentStatus: EPaymentStatus.PENDING, 
+            status: EListingStatus.Pending,
             images
         });
 
@@ -286,7 +288,7 @@ export const updateListing = async (req: IAuthRequest, res: Response): Promise<v
             'brand', 'model', 'year', 'mileage', 'engineCapacity',
             'condition', 'price', 'priceNegotiable', 'location',
             'description', 'reasonForSelling', 'hasDocuments',
-            'documentType', 'chassisNumber', 'engineNumber',
+            'documentType', 'chassisNumber', 'engineNumber', 'images'
         ];
 
         allowedUpdates.forEach((field) => {
@@ -499,11 +501,87 @@ export const contactSeller = async (req: IAuthRequest, res: Response): Promise<v
                 sellerName: (listing.seller as any).fullName,
                 sellerPhone: (listing.seller as any).phoneNumber,
                 listingTitle: `${listing.brand} ${listing.model || ''} - GHS ${listing.price}`,
-                warning:''
+                warning: ''
             },
         } as IApiResponse);
     } catch (error) {
         console.error('Contact seller error:', error);
         res.status(500).json({ success: false, message: 'Error retrieving contact info' } as IApiResponse);
+    }
+};
+
+
+// ============================================
+// GET UNPAID LISTINGS (For dashboard reminder)
+// ============================================
+export const getUnpaidListings = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const listings = await ListingModel.find({
+            seller: req.user!._id,
+            paymentStatus: EPaymentStatus.PENDING,
+            status: { $ne: 'sold' },
+        })
+            .sort('-createdAt')
+            .select('brand model price listingType listingFee images createdAt')
+            .lean();
+
+        res.json({
+            success: true,
+            count: listings.length,
+            data: listings,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch unpaid listings' });
+    }
+};
+
+// ============================================
+// RETRY PAYMENT FOR LISTING
+// ============================================
+export const retryListingPayment = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const { listingId } = req.params;
+        const user = req.user!;
+
+        const listing = await ListingModel.findById(listingId);
+
+        if (!listing) {
+            res.status(404).json({ success: false, message: 'Listing not found' });
+            return;
+        }
+
+        if (listing.seller.toString() !== user._id.toString()) {
+            res.status(403).json({ success: false, message: 'Not your listing' });
+            return;
+        }
+
+        // Already paid
+        if (listing.paymentStatus === EPaymentStatus.PAID) {
+            res.status(400).json({ success: false, message: 'Already paid' });
+            return;
+        }
+
+        // Already approved
+        if (listing.status === 'approved') {
+            res.status(400).json({ success: false, message: 'Listing is already live' });
+            return;
+        }
+
+        const amount = listing.listingType === 'premium'
+            ? EPAYMENT_FEES.listing_premium
+            : EPAYMENT_FEES.listing_standard;
+
+        res.json({
+            success: true,
+            data: {
+                listingId: listing._id,
+                title: `${listing.brand} ${listing.model || ''}`.trim(),
+                amount,
+                listingType: listing.listingType,
+                paymentStatus: listing.paymentStatus,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to get payment info' });
     }
 };
