@@ -75,7 +75,7 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
             engineNumber,
             listingType,
             listingFee,
-            paymentStatus: EPaymentStatus.PENDING, 
+            paymentStatus: EPaymentStatus.PENDING,
             status: EListingStatus.Pending,
             images
         });
