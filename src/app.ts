@@ -92,7 +92,7 @@ app.get('/health', (req: IAuthRequest, res: Response) => {
         mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
     });
 });
- 
+
 app.get('/', (req: IAuthRequest, res: Response) => {
     console.log(req?.user)
     res.status(200).json({
@@ -115,8 +115,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/locations', locationRoutes);
-app.use('/api/users', userRoutes); 
-app.use('/api/contact', contactRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/contacts', contactRoutes);
 
 // ==================== ERROR HANDLING ====================
 // 404 handler
@@ -130,4 +130,4 @@ export default app;
 
 
 
- 
+
