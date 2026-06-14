@@ -51,6 +51,8 @@ export const submitContact = async (req: Request, res: Response): Promise<void> 
             status: 'new',
         });
 
+        console.log(contact)
+
         // ✅ Send email notification (don't await - fire and forget)
         sendContactNotification(contact).catch((err) => {
             console.error('Failed to send notification:', err);

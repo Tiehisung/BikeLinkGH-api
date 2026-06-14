@@ -14,7 +14,8 @@ const router = Router();
 router.post('/', submitContact);
 
 // Admin routes
-authorize('adming')
+router.use(authorize('admin'))
+
 router.get('/', authenticate, getAllContacts);
 router.get('/:id', authenticate, getContactById);
 router.patch('/:id/status', authenticate, updateContactStatus);

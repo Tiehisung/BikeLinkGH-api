@@ -5,7 +5,7 @@ import { ENV } from '../config/env.config';
 // RESEND VERSION
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const sendContactNotification = async (contact: IContact): Promise<void> => {
+export const sendContactNotificationUsingResend = async (contact: IContact): Promise<void> => {
     const adminEmail = ENV.ADMIN_EMAIL
 
     try {
