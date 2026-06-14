@@ -1,6 +1,8 @@
 const env = process.env;
 
 export const ENV = {
+    APP_NAME: env.APP_NAME,
+    FRONTEND_URL: env.FRONTEND_URL,
     // Server
     PORT: env.PORT || 5000,
     NODE_ENV: env.NODE_ENV || 'development',
@@ -10,7 +12,6 @@ export const ENV = {
 
     // URLs
     ALLOWED_ORIGINS: env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
-    FRONTEND_URL: env.FRONTEND_URL || 'http://localhost:5173',
 
     // JWT
     JWT: {
@@ -47,4 +48,12 @@ export const ENV = {
         PUBLIC_KEY: env.PAYSTACK_PUBLIC_KEY as string,
         WEBHOOK_SECRET: env.PAYSTACK_WEBHOOK_SECRET as string,
     },
+    CONTACT_EMAIL: env.CONTACT_EMAIL,
+    ADMIN_EMAIL: env.ADMIN_EMAIL,
+    SMTP_MAILER: {
+        HOST: env.SMTP_HOST,
+        PORT: env.SMTP_PORT,
+        AUTH_USER: env.SMTP_USER,
+        AUTH_PASS: env.SMTP_PASS,
+    }
 } as const;
