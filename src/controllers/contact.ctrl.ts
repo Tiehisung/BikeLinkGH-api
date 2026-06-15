@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import ContactModel from '../models/contact.model';
 import { IApiResponse, IAuthRequest } from '../types';
 import { sendContactNotification } from '../services/email-node-mailer.service';
+import { sendContactNotificationUsingResend } from '../services/email-resend-version.service';
 
 // ============================================
 // SUBMIT CONTACT FORM
@@ -56,6 +57,7 @@ export const submitContact = async (req: Request, res: Response): Promise<void> 
         // ✅ Send email notification (don't await - fire and forget)
         sendContactNotification(message).catch((err) => {
             console.error('Failed to send notification:', err);
+            sendContactNotificationUsingResend(message)
         });
 
         res.status(201).json({
