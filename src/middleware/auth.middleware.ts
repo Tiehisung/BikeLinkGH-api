@@ -89,6 +89,7 @@ export const authenticate = async (
 // ============================================
 export const authorize = (...roles: string[]) => {
     return (req: IAuthRequest, res: Response, next: NextFunction): void => {
+        // console.log('user',req.user)
         if (!req.user) {
             res.status(HttpStatusCode.Unauthorized).json({
                 success: false,

@@ -14,11 +14,12 @@ const router = Router();
 router.post('/', submitContact);
 
 // Admin routes
+router.use(authenticate)
 router.use(authorize('admin'))
 
-router.get('/', authenticate, getAllContacts);
-router.get('/:id', authenticate, getContactById);
-router.patch('/:id/status', authenticate, updateContactStatus);
-router.delete('/:id', authenticate, deleteContact);
+router.get('/',  getAllContacts);
+router.get('/:id',  getContactById);
+router.patch('/:id/status',  updateContactStatus);
+router.delete('/:id',  deleteContact);
 
 export default router;
