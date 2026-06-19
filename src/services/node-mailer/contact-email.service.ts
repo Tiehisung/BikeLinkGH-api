@@ -1,53 +1,26 @@
-import nodemailer from 'nodemailer';
-import { IContact } from '../models/contact.model';
-import { ENV } from '../config/env.config';
+import { IContact } from '../../models/contact.model';
+import { ENV } from '../../config/env.config';
+import { nodeMailerTransporter } from './_index';
 
-// ============================================
-// CONFIGURATION
-// ============================================
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    host: ENV.SMTP_MAILER.HOST,
-    port: Number(ENV.SMTP_MAILER.PORT) ,
-    secure: true,
-    auth: {
-        user: ENV.SMTP_MAILER.AUTH_USER,
-        pass: ENV.SMTP_MAILER.AUTH_PASS, //google generated app pass
-    },
-});
-
-// ============================================
-// VERIFY CONNECTION (Run on startup)
-// ============================================
-export const verifyEmailConnection = async (): Promise<boolean> => {
-    try {
-        await transporter.verify();
-        console.log('✅ Email service ready');
-        return true;
-    } catch (error) {
-        console.error('❌ Email service failed:', error);
-        return false;
-    }
-};
 
 // ============================================
 // SEND CONTACT NOTIFICATION TO ADMIN
 // ============================================
 export const sendContactNotification = async (contact: IContact): Promise<void> => {
-    const adminEmail = ENV.ADMIN_EMAIL || ENV.CONTACT_EMAIL;
-    const frontendUrl = ENV.FRONTEND_URL || 'http://localhost:5173';
+  const adminEmail = ENV.ADMIN_EMAIL || ENV.CONTACT_EMAIL;
+  const frontendUrl = ENV.FRONTEND_URL || 'http://localhost:5173';
 
-    const inquiryLabels: Record<string, string> = {
-        buying: '🏍️ Want to Buy',
-        selling: '💰 Want to Sell',
-        verification: '🛡️ Verification Help',
-        payment: '💳 Payment Issue',
-        listing: '📝 Listing Help',
-        partnership: '🤝 Partnership',
-        other: '📩 Other',
-    };
+  const inquiryLabels: Record<string, string> = {
+    buying: '🏍️ Want to Buy',
+    selling: '💰 Want to Sell',
+    verification: '🛡️ Verification Help',
+    payment: '💳 Payment Issue',
+    listing: '📝 Listing Help',
+    partnership: '🤝 Partnership',
+    other: '📩 Other',
+  };
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -113,7 +86,7 @@ export const sendContactNotification = async (contact: IContact): Promise<void> 
     </html>
   `;
 
-    const text = `
+  const text = `
 NEW CONTACT MESSAGE - ${ENV.APP_NAME}
 =================================
 
@@ -126,35 +99,35 @@ ${contact.message ? `\nMessage:\n${contact.message}` : '\nNo message provided.'}
 View in admin: ${frontendUrl}/admin/contacts
   `.trim();
 
-    try {
-        await transporter.sendMail({
-            from: `"${ENV.APP_NAME}" <${process.env.SMTP_USER}>`,
-            to: adminEmail,
-            subject: `📩 New ${contact.inquiryType} inquiry from ${contact.fullName}`,
-            text,
-            html,
-        });
+  try {
+    await nodeMailerTransporter.sendMail({
+      from: `"${ENV.APP_NAME}" <${process.env.SMTP_USER}>`,
+      to: adminEmail,
+      subject: `📩 New ${contact.inquiryType} inquiry from ${contact.fullName}`,
+      text,
+      html,
+    });
 
-        console.log(`✅ Contact notification sent to ${adminEmail}`);
-    } catch (error) {
-        console.error('❌ Failed to send contact notification:', error);
-        // Don't throw - we don't want the contact form to fail if email fails
-    }
+    console.log(`✅ Contact notification sent to ${adminEmail}`);
+  } catch (error) {
+    console.error('❌ Failed to send contact notification:', error);
+    // Don't throw - we don't want the contact form to fail if email fails
+  }
 };
 
 // ============================================
 // SEND REPLY TO CUSTOMER (For admin use)
 // ============================================
 export const sendContactReply = async (
-    contact: IContact,
-    replyMessage: string
+  contact: IContact,
+  replyMessage: string
 ): Promise<void> => {
-    if (!contact.email) {
-        console.warn('Cannot send reply - no email provided');
-        return;
-    }
+  if (!contact.email) {
+    console.warn('Cannot send reply - no email provided');
+    return;
+  }
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -190,17 +163,17 @@ export const sendContactReply = async (
     </html>
   `;
 
-    try {
-        await transporter.sendMail({
-            from: `"${ENV.APP_NAME} Support" <${process.env.SMTP_USER}>`,
-            to: contact.email,
-            subject: `Re: Your ${contact.inquiryType} inquiry - ${ENV.APP_NAME}`,
-            html,
-        });
+  try {
+    await nodeMailerTransporter.sendMail({
+      from: `"${ENV.APP_NAME} Support" <${process.env.SMTP_USER}>`,
+      to: contact.email,
+      subject: `Re: Your ${contact.inquiryType} inquiry - ${ENV.APP_NAME}`,
+      html,
+    });
 
-        console.log(`✅ Reply sent to ${contact.email}`);
-    } catch (error) {
-        console.error('❌ Failed to send reply:', error);
-        throw error;
-    }
+    console.log(`✅ Reply sent to ${contact.email}`);
+  } catch (error) {
+    console.error('❌ Failed to send reply:', error);
+    throw error;
+  }
 };

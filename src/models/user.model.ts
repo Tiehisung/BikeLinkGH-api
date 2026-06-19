@@ -20,6 +20,11 @@ const userSchema = new Schema({
         unique: true,
         match: [/^0[0-9]{9}$/, 'Please enter a valid Ghana phone number starting with 0']
     },
+    email: {
+        type: String,
+        trim: true,
+        lowercase: true
+    },
     password: {
         type: String,
         required: [true, 'Password is required'],

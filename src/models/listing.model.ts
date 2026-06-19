@@ -135,6 +135,7 @@ const listingSchema = new Schema<IListing>(
         },
         adminNotes: String,
         reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        // leads: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [] },
         reviewedAt: Date,
         isPhysicallyVerified: { type: Boolean, default: false },
         inspectionId: { type: Schema.Types.ObjectId, ref: 'Inspection' },

@@ -5,6 +5,10 @@ import UserModel from '../models/user.model';
 import { IAuthRequest, IApiResponse } from '../types';
 import { EPaymentStatus } from '../models/payment.model';
 import { EPAYMENT_FEES } from '../data/payment';
+import ATSmsService, { at_smsService } from '../services/sms/at.service';
+import LeadModel, { ENotificationChannel } from '../models/lead.model';
+import { sendNewLeadEmail } from '../services/node-mailer/interested-lead.service';
+import { ENV } from '../config/env.config';
 
 // ============================================
 // LISTING FEE CONSTANTS
@@ -583,5 +587,301 @@ export const retryListingPayment = async (req: IAuthRequest, res: Response): Pro
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to get payment info' });
+    }
+};
+
+
+// ============================================
+// GET MY LEADS (For sellers)
+// ============================================
+export const getMyLeads = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const { page = 1, limit = 20, status } = req.query as any;
+
+        const filter: any = { seller: req.user!._id };
+        if (status && status !== 'all') filter.status = status;
+
+        const pageNum = Math.max(1, Number(page));
+        const limitNum = Math.min(50, Math.max(1, Number(limit)));
+        const skip = (pageNum - 1) * limitNum;
+
+        const [leads, total] = await Promise.all([
+            LeadModel.find(filter)
+                .populate('buyer', 'fullName phoneNumber')
+                .populate('listing', 'brand model price images')
+                .sort('-createdAt')
+                .skip(skip)
+                .limit(limitNum)
+                .lean(),
+            LeadModel.countDocuments(filter),
+        ]);
+
+        // Stats
+        const stats = await LeadModel.aggregate([
+            { $match: { seller: req.user!._id } },
+            { $group: { _id: '$status', count: { $sum: 1 } } },
+        ]);
+
+        const statusCounts = stats.reduce((acc: any, s) => {
+            acc[s._id] = s.count;
+            return acc;
+        }, {});
+
+        res.json({
+            success: true,
+            count: leads.length,
+            data: leads,
+            stats: {
+                total,
+                new: statusCounts.pending || 0,
+                notified: statusCounts.notified || 0,
+                contacted: statusCounts.contacted || 0,
+            },
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum),
+                hasNextPage: pageNum < Math.ceil(total / limitNum),
+                hasPreviousPage: pageNum > 1,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch leads' });
+    }
+};
+// ============================================
+// MARK LEAD AS CONTACTED
+// ============================================
+export const markLeadContacted = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const lead = await LeadModel.findOneAndUpdate(
+            { _id: req.params.id, seller: req.user!._id },
+            { status: 'contacted' },
+        );
+
+        if (!lead) {
+            res.status(404).json({ success: false, message: 'Lead not found' });
+            return;
+        }
+
+        res.json({ success: true, message: 'Marked as contacted', data: lead });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to update lead' });
+    }
+};
+
+
+
+// ============================================
+// REQUEST SELLER CALL
+// ============================================
+export const requestSellerCall = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const { listingId } = req.params;
+        const buyer = req.user!;
+        const { buyerPhone } = req.body;
+
+        const phone = buyerPhone || buyer.phoneNumber;
+        if (!phone || phone.length < 10) {
+            res.status(400).json({ success: false, message: 'Valid phone number is required' });
+            return;
+        }
+
+        // Find listing with seller populated
+        const listing = await ListingModel.findById(listingId)
+            .populate('seller', 'fullName phoneNumber email');
+
+        if (!listing) {
+            res.status(404).json({ success: false, message: 'Listing not found' });
+            return;
+        }
+
+        const seller = listing.seller as any;
+
+        // Prevent self-request
+        if (seller._id.toString() === buyer._id.toString()) {
+            res.status(400).json({ success: false, message: 'You cannot request a call on your own listing' });
+            return;
+        }
+
+        // Check for duplicate
+        const existingLead = await LeadModel.findOne({
+            listing: listing._id,
+            buyer: buyer._id,
+        });
+
+        if (existingLead) {
+            res.status(400).json({
+                success: false,
+                message: 'You already requested a call for this bike. The seller will contact you soon.',
+            });
+            return;
+        }
+
+        // Generate message
+        const bikeTitle = `${listing.brand} ${listing.model || ''}`.trim();
+        const formattedSellerPhone = ATSmsService.formatPhone(seller.phoneNumber);
+        const listingUrl = `${ENV.FRONTEND_URL}/listing/${listing._id}`;
+
+        const smsMessage = ATSmsService.generateSellerSms({
+            sellerName: seller.fullName,
+            buyerName: buyer.fullName,
+            buyerPhone: phone,
+            bikeTitle,
+            bikePrice: listing.price,
+        });
+
+        // Create lead record (Dashboard always works)
+        const lead = await LeadModel.create({
+            listing: listing._id,
+            buyer: buyer._id,
+            seller: seller._id,
+            buyerPhone: phone,
+            sellerPhone: seller.phoneNumber,
+            notifications: [
+                { channel: ENotificationChannel.DASHBOARD, success: true, sentAt: new Date() },
+            ],
+        });
+
+        // Increment inquiry count
+        listing.inquiryCount += 1;
+        await listing.save();
+
+        // ============================================
+        // 1. SEND SMS (fire and forget - updates lead later)
+        // ============================================
+        at_smsService.sendSms({ to: formattedSellerPhone, message: smsMessage })
+            .then(async (result) => {
+                await LeadModel.findByIdAndUpdate(lead._id, {
+                    smsSent: result.success,
+                    smsMessageId: result.messageId,
+                    smsError: result.error,
+                    $push: {
+                        notifications: {
+                            channel: ENotificationChannel.SMS,
+                            success: result.success,
+                            messageId: result.messageId,
+                            error: result.error,
+                            sentAt: new Date(),
+                        },
+                    },
+                });
+            })
+            .catch(async (err) => {
+                await LeadModel.findByIdAndUpdate(lead._id, {
+                    smsSent: false,
+                    smsError: err.message,
+                    $push: {
+                        notifications: {
+                            channel: ENotificationChannel.SMS,
+                            success: false,
+                            error: err.message,
+                            sentAt: new Date(),
+                        },
+                    },
+                });
+            });
+
+        // ============================================
+        // 2. SEND EMAIL (fire and forget - updates lead later)
+        // ============================================
+        if (seller.email) {
+            sendNewLeadEmail({
+                sellerEmail: seller.email,
+                sellerName: seller.fullName,
+                buyerName: buyer.fullName,
+                buyerPhone: phone,
+                bikeTitle,
+                bikePrice: listing.price,
+                listingUrl,
+            })
+                .then(async () => {
+                    await LeadModel.findByIdAndUpdate(lead._id, {
+                        $push: {
+                            notifications: {
+                                channel: ENotificationChannel.EMAIL,
+                                success: true,
+                                sentAt: new Date(),
+                            },
+                        },
+                    });
+                })
+                .catch(async (err) => {
+                    console.error('Failed to send lead email:', err);
+                    await LeadModel.findByIdAndUpdate(lead._id, {
+                        $push: {
+                            notifications: {
+                                channel: ENotificationChannel.EMAIL,
+                                success: false,
+                                error: err.message,
+                                sentAt: new Date(),
+                            },
+                        },
+                    });
+                });
+        }
+
+        // Response sent immediately — no waiting for SMS/Email
+        res.json({
+            success: true,
+            message: `Request sent! ${seller.fullName} will call you shortly at ${phone}.`,
+            data: {
+                leadId: lead._id,
+                sellerName: seller.fullName,
+                buyerPhone: phone,
+            },
+        });
+    } catch (error: any) {
+        if (error.code === 11000) {
+            res.status(400).json({
+                success: false,
+                message: 'You already requested a call for this bike.',
+            });
+            return;
+        }
+        console.error('Request seller call error:', error);
+        res.status(500).json({ success: false, message: 'Failed to send request' });
+    }
+};
+
+// ============================================
+// GET MY REQUESTS (For buyers - listings they requested calls on)
+// ============================================
+export const getMyRequests = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const requests = await LeadModel.find({ buyer: req.user!._id })
+            .populate('seller', 'fullName phoneNumber')
+            .populate('listing', 'brand model price images status')
+            .sort('-createdAt')
+            .limit(50)
+            .lean();
+
+        res.json({
+            success: true,
+            count: requests.length,
+            data: requests,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch requests' });
+    }
+};
+
+export const checkMyRequest = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const { listingId } = req.params;
+        const request = await LeadModel.findOne({ buyer: req.user!._id, listing: listingId })
+            .populate('seller', 'fullName phoneNumber')
+            .sort('-createdAt')
+            .limit(50)
+            .lean();
+
+        res.json({
+            success: true,
+            status: request?.status,
+            data: request,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch requests' });
     }
 };

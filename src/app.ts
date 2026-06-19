@@ -43,7 +43,7 @@ app.use(helmet({
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [process.env.FRONTEND_URL as string || 'https://mototrustgh.vercel.app'],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [process.env.FRONTEND_URL as string],
     credentials: true,
     optionsSuccessStatus: 200,
     exposedHeaders: ['set-cookie']
@@ -71,15 +71,50 @@ const authLimiter = rateLimit({
 });
 app.use('/api/auth', authLimiter);
 
+
+// ============================================
+// LOGIN: 20 failed attempts per phone per 15 min
+// ============================================
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    skipSuccessfulRequests: true,
+    keyGenerator: (req) => `login_${req.body?.phoneNumber}`,
+    handler: (req, res) => {
+        res.status(429).json({
+            success: false,
+            message: 'Too many failed login attempts. Try again in 15 minutes.',
+            code: 'LOGIN_RATE_LIMITED',
+        });
+    },
+});
+
+// ============================================
+// REGISTER: 10 accounts per IP per hour
+// ============================================
+const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    keyGenerator: (req) => `register_${req.ip}`,
+    handler: (req, res) => {
+        res.status(429).json({
+            success: false,
+            message: 'Too many account registrations. Try again later.',
+            code: 'REGISTER_RATE_LIMITED',
+        });
+    },
+});
+
+// Apply only to login and register
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/register', registerLimiter);
+
 // ==================== PARSING MIDDLEWARE ====================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Compression - compress all responses - Makes responses FASTER and reduces bandwidth usage
 app.use(compression());
-
-
-
 
 // ==================== HEALTH CHECK ====================
 app.get('/health', (req: IAuthRequest, res: Response) => {
@@ -89,17 +124,20 @@ app.get('/health', (req: IAuthRequest, res: Response) => {
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         environment: process.env.NODE_ENV || 'development',
-        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     });
 });
 
 app.get('/', (req: IAuthRequest, res: Response) => {
     console.log(req?.user)
+    console.log('ip', req.ip)
     res.status(200).json({
-        message: 'Mototrust API Server',
+        message: `${ENV.APP_NAME} API Server`,
         version: '1.0.0',
         documentation: '/api/docs',
-        health: '/health'
+        health: '/health',
+        ip: req.ip,
+        ips: req.ips
     });
 });
 
