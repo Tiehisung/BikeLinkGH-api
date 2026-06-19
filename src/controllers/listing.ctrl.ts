@@ -307,6 +307,11 @@ export const updateListing = async (req: IAuthRequest, res: Response): Promise<v
             listing.adminNotes = undefined;
         }
 
+        // Reset status for reapproval
+        if (listing.status === 'rejected') {
+            listing.status = 'pending';
+        }
+
         listing.updatedAt = new Date();
         await listing.save();
 
