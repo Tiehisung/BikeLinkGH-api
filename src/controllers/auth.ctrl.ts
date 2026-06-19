@@ -34,7 +34,7 @@ const generateRefreshToken = (id: string): string => {
 // ============================================
 export const register = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { fullName, phoneNumber, password, role } = req.body;
+        const { fullName, phoneNumber, password, role, email } = req.body;
 
         // Check existing
         const existingUser = await UserModel.findOne({ phoneNumber });
@@ -45,13 +45,24 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             } as IApiResponse);
             return;
         }
+        if (email.trim()) {
+            const existingUserEmail = await UserModel.findOne({ email: email.trim().toLowercase() });
+            if (existingUserEmail) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Email already registered',
+                } as IApiResponse);
+                return;
+            }
+        }
 
         // Create user
         const user = await UserModel.create({
             fullName,
             phoneNumber,
             password,
-            role: role || 'buyer',
+            role,
+            email //recommended for sellers
         });
 
         // Generate tokens
@@ -199,7 +210,7 @@ export const updateProfile = async (req: IAuthRequest, res: Response): Promise<v
         const user = await UserModel.findByIdAndUpdate(
             req.user?._id,
             { fullName, region, town },
-            { new: true, runValidators: true }
+            { runValidators: true }
         );
 
         res.json({
@@ -260,7 +271,7 @@ export const verifyIdentity = async (req: IAuthRequest, res: Response): Promise<
             return;
         }
 
-       
+
 
         // Update user record
         const user = await UserModel.findByIdAndUpdate(
@@ -271,7 +282,6 @@ export const verifyIdentity = async (req: IAuthRequest, res: Response): Promise<
                 ghanaCardNumber,
                 // isVerified stays false until admin approves
             },
-            { new: true }
         );
 
         res.json({
@@ -363,7 +373,6 @@ export const confirmMomo = async (req: IAuthRequest, res: Response): Promise<voi
         const user = await UserModel.findByIdAndUpdate(
             req.user!._id,
             { momoVerified: true },
-            { new: true }
         );
 
         res.json({

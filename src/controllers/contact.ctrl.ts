@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import ContactModel from '../models/contact.model';
 import { IApiResponse, IAuthRequest } from '../types';
-import { sendContactNotification } from '../services/email-node-mailer.service';
+import { sendContactNotification } from '../services/node-mailer/contact-email.service';
 import { sendContactNotificationUsingResend } from '../services/email-resend-version.service';
 
 // ============================================

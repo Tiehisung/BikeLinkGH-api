@@ -9,9 +9,14 @@ import {
     markAsSold,
     uploadListingImages,
     uploadListingDocument,
-    contactSeller,
+    // contactSeller,
     getUnpaidListings,
     retryListingPayment,
+    getMyLeads,
+    markLeadContacted,
+    requestSellerCall,
+    getMyRequests,
+    checkMyRequest,
 } from '../controllers/listing.ctrl';
 import { authenticate } from '../middleware/auth.middleware';
 import { uploadMultipleImages, uploadDocument } from '../config/cloudinary.config';
@@ -35,10 +40,17 @@ router.patch('/:id/mark-sold', markAsSold);
 router.post('/:id/images', uploadMultipleImages, uploadListingImages);
 router.post('/:id/document', uploadDocument, uploadListingDocument);
 
-// Contact
-router.post('/:id/contact', contactSeller);
 
-router.get('/unpaid', authenticate, getUnpaidListings);
-router.get('/:listingId/retry-payment', authenticate, retryListingPayment);
+router.get('/unpaid', getUnpaidListings);
+router.get('/:listingId/retry-payment', retryListingPayment);
 
+//
+router.post('/:listingId/request-call', requestSellerCall);
+
+// Lead management
+router.get('/leads/mine', getMyLeads); //Seller
+router.patch('/leads/:id/contacted', markLeadContacted); //Seller
+
+router.get('/requests/mine', getMyRequests); //Buyer
+router.get('/:listingId/requests/check-status', checkMyRequest); //Buyer
 export default router;
