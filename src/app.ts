@@ -20,6 +20,7 @@ import brandRoutes from './routes/brand.routes';
 import locationRoutes from './routes/location.routes';
 import userRoutes from './routes/user.routes';
 import contactRoutes from './routes/contact.routes';
+import pricingRoutes from './routes/pricing.routes';
 
 import { notFound, errorHandler } from './middleware/error-handler.middleware';
 import { runUpdate } from './runUpdate';// server/app.ts
@@ -155,6 +156,7 @@ app.use('/api/brands', brandRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 // ==================== ERROR HANDLING ====================
 // 404 handler
