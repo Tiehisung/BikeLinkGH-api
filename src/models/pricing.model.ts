@@ -79,6 +79,8 @@ const pricingSchema = new Schema<IPricing>(
             type: Schema.Types.ObjectId,
             ref: 'User',
         },
+
+        
     },
     { timestamps: true }
 );

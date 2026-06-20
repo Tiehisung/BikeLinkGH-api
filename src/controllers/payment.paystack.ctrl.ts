@@ -3,6 +3,8 @@ import PaystackService, { paystackService } from '../services/paystack.service';
 import PaymentModel, { EMobileNetwork, EPaymentChannel, EPaymentStatus, EPaymentType } from '../models/payment.model';
 import ListingModel from '../models/listing.model';
 import { IAuthRequest } from '../types';
+import { applyBoost } from './boost.controller';
+import PricingModel from '../models/pricing.model';
 
 const PAYMENT_FEES = {
     listing_standard: 25,
@@ -10,17 +12,30 @@ const PAYMENT_FEES = {
     verification: 10,
 };
 
+ 
+
 export const initiateMobileMoneyPayment = async (
     req: IAuthRequest,
     res: Response
 ): Promise<void> => {
     try {
-        const { listingId, momoNumber, network, paymentType = EPaymentType.LISTING_FEE } = req.body;
+        const {
+            listingId,
+            momoNumber,
+            network,
+            paymentType = EPaymentType.LISTING_FEE,
+            metadata = {}  // ✅ Accept additional metadata (boostKey, durationDays, etc.)
+        } = req.body;
         const user = req.user!;
 
         let amount = 0;
         let description = '';
+        let productKey = '';
+        let referencePrefix = 'LISTING';
 
+        // ============================================
+        // LISTING FEE
+        // ============================================
         if (paymentType === EPaymentType.LISTING_FEE && listingId) {
             const listing = await ListingModel.findById(listingId);
             if (!listing) {
@@ -32,22 +47,114 @@ export const initiateMobileMoneyPayment = async (
                 return;
             }
             if (listing.paymentStatus === EPaymentStatus.PAID) {
-                res.status(400).json({ success: false, message: 'Already paid' });
+                res.status(400).json({ success: false, message: 'Listing fee already paid' });
                 return;
             }
-            amount = listing.listingType === 'premium'
-                ? PAYMENT_FEES.listing_premium
-                : PAYMENT_FEES.listing_standard;
+
+            // Get price from DB
+            const pricingKey = listing.listingType === 'premium' ? 'premium' : 'standard';
+            const pricing = await PricingModel.findOne({
+                category: 'listing_fee',
+                key: pricingKey,
+                isActive: true,
+            });
+
+            amount = pricing?.amount || (listing.listingType === 'premium' ? 45 : 25);
+            productKey = `listing_${pricingKey}`;
             description = `Listing fee - ${listing.brand} ${listing.model || ''}`;
-        } else if (paymentType === EPaymentType.VERIFICATION_FEE) {
-            amount = PAYMENT_FEES.verification;
-            description = 'Identity verification fee';
-        } else {
+            referencePrefix = 'LISTING';
+        }
+
+        // ============================================
+        // BOOST (Premium Upgrade)
+        // ============================================
+        else if (paymentType === EPaymentType.PREMIUM_UPGRADE && listingId) {
+            const boostKey = metadata.boostKey;
+            if (!boostKey) {
+                res.status(400).json({ success: false, message: 'Boost type is required' });
+                return;
+            }
+
+            const listing = await ListingModel.findById(listingId);
+            if (!listing) {
+                res.status(404).json({ success: false, message: 'Listing not found' });
+                return;
+            }
+            if (listing.seller.toString() !== user._id.toString()) {
+                res.status(403).json({ success: false, message: 'Not your listing' });
+                return;
+            }
+
+            // ✅ DIFFERENT CHECK: Check if already boosted (not if paid)
+            if (listing.isBoosted && listing.boostExpiresAt && new Date() < listing.boostExpiresAt) {
+                const remainingDays = Math.ceil(
+                    (listing.boostExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+                );
+                res.status(400).json({
+                    success: false,
+                    message: `Already boosted. Expires in ${remainingDays} days.`,
+                });
+                return;
+            }
+
+            // ✅ Listing must be paid first before boosting
+            if (listing.paymentStatus !== EPaymentStatus.PAID) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Pay the listing fee first before boosting.',
+                });
+                return;
+            }
+
+            // Get boost price from DB
+            const pricing = await PricingModel.findOne({
+                category: 'featured_boost',
+                key: boostKey,
+                isActive: true,
+            });
+
+            if (!pricing) {
+                res.status(400).json({ success: false, message: 'Invalid boost option' });
+                return;
+            }
+
+            amount = pricing.amount;
+            productKey = `boost_${boostKey}`;
+            description = `Boost - ${listing.brand} ${listing.model || ''} (${boostKey})`;
+            referencePrefix = 'BOOST';
+
+            // ✅ Attach boost metadata to pass to webhook
+            metadata.durationDays = pricing.metadata?.durationDays || 7;
+        }
+
+        // ============================================
+        // VERIFICATION FEE
+        // ============================================
+        else if (paymentType === EPaymentType.VERIFICATION_FEE) {
+            const pricing = await PricingModel.findOne({
+                category: 'verification',
+                key: 'physical',
+                isActive: true,
+            });
+
+            amount = pricing?.amount || 60;
+            productKey = 'verification_physical';
+            description = 'Physical bike verification';
+            referencePrefix = 'VERIFY';
+        }
+
+        // ============================================
+        // INVALID
+        // ============================================
+        else {
             res.status(400).json({ success: false, message: 'Invalid payment type' });
             return;
         }
 
-        const reference = PaystackService.generateReference('LISTING');
+        // ============================================
+        // CREATE PAYMENT & CHARGE
+        // ============================================
+        const reference = PaystackService.generateReference(referencePrefix as any);
         const formattedPhone = PaystackService.formatPhone(momoNumber || user.phoneNumber);
         const provider = PaystackService.mapNetwork(network || 'MTN');
 
@@ -61,7 +168,12 @@ export const initiateMobileMoneyPayment = async (
             paymentType,
             status: EPaymentStatus.PENDING,
             paystackReference: reference,
-            metadata: { description, initiatedBy: user._id.toString() },
+            metadata: {
+                description,
+                initiatedBy: user._id.toString(),
+                productKey,
+                ...metadata, // ✅ Pass boostKey, durationDays, etc.
+            },
         });
 
         const result = await paystackService.chargeMobileMoney({
@@ -97,6 +209,7 @@ export const initiateMobileMoneyPayment = async (
                 paymentId: payment._id,
                 reference,
                 amount,
+                paymentType,
                 status: payment.status,
             },
         });
@@ -218,6 +331,18 @@ const markPaymentAsPaid = async (
             paymentStatus: EPaymentStatus.PAID,
             paymentReference: payment.paystackReference,
         });
+    }
+
+    // ✅ HANDLE BOOST PAYMENT
+    // ============================================
+    if (payment.paymentType === 'premium_upgrade' && payment.listing && payment.metadata?.boostKey) {
+        const durationDays = payment.metadata.durationDays || 7;
+        await applyBoost(
+            payment.listing.toString(),
+            payment.metadata.boostKey,
+            durationDays,
+            payment.paystackReference
+        );
     }
 };
 
