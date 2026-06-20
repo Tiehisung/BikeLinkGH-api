@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { IApiResponse } from '../../types';
-import UserModel from '../../models/user.model';
+import { seedPricing } from './seedPricing';
 // import { seedBrands } from './seedBrands';
 // import { seedLocations } from './seedLocations';
 
 export const scriptCtrl = async (req: Request, res: Response): Promise<void> => {
-    const result = await UserModel.findOneAndUpdate({ phoneNumber: '0206404992' }, { $set: { email: 'isoskode@gmail.com' } })
+    const result = await seedPricing()
     try {
         res.status(201).json({
             success: true,
