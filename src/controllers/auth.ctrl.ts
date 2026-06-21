@@ -5,9 +5,7 @@ import { ENV } from '../config/env.config';
 import UserModel from '../models/user.model';
 import { formatCloudinaryResponse } from '../utils/cloudinary.util';
 
-// ============================================
 // TOKEN GENERATION
-// ============================================
 const generateAccessToken = (id: string): string => {
     const payload = { _id: id };
     const secret = ENV.JWT.ACCESS_SECRET;
@@ -28,10 +26,8 @@ const generateRefreshToken = (id: string): string => {
     return jwt.sign(payload, secret, options);
 };
 
-// ============================================
 // @desc    Register user
 // @route   POST /api/auth/register
-// ============================================
 export const register = async (req: Request, res: Response): Promise<void> => {
     try {
         const { fullName, phoneNumber, password, role, email } = req.body;
@@ -78,7 +74,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             message: 'Registration successful',
             token: accessToken,
             user: {
-                id: user._id,
+                _id: user._id,
                 fullName: user.fullName,
                 phoneNumber: user.phoneNumber,
                 role: user.role,
@@ -101,10 +97,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// ============================================
 // @desc    Login user
 // @route   POST /api/auth/login
-// ============================================
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
         const { phoneNumber, password } = req.body;
@@ -150,7 +144,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             message: 'Login successful',
             token: accessToken,
             user: {
-                id: user._id,
+                _id: user._id,
                 fullName: user.fullName,
                 phoneNumber: user.phoneNumber,
                 role: user.role,
@@ -166,10 +160,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-// ============================================
 // @desc    Get current user
 // @route   GET /api/auth/me
-// ============================================
 export const getMe = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const user = await UserModel.findById(req.user?._id);
@@ -194,10 +186,8 @@ export const getMe = async (req: IAuthRequest, res: Response): Promise<void> => 
     }
 };
 
-// ============================================
 // @desc    Update profile
 // @route   PUT /api/auth/profile
-// ============================================
 export const updateProfile = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { fullName, region, town } = req.body as {
@@ -328,9 +318,7 @@ export const getVerificationStatus = async (req: IAuthRequest, res: Response): P
     }
 };
 
-// ============================================
 // VERIFY MOMO NUMBER (Initiate)
-// ============================================
 export const verifyMomo = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { momoNumber, network } = req.body;
@@ -356,9 +344,7 @@ export const verifyMomo = async (req: IAuthRequest, res: Response): Promise<void
     }
 };
 
-// ============================================
 // CONFIRM MOMO VERIFICATION
-// ============================================
 export const confirmMomo = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { code } = req.body;
@@ -388,10 +374,8 @@ export const confirmMomo = async (req: IAuthRequest, res: Response): Promise<voi
     }
 };
 
-// ============================================
 // @desc    Logout user
 // @route   POST /api/auth/logout
-// ============================================
 export const logout = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         // Clear refresh token

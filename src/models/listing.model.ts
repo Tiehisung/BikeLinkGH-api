@@ -36,6 +36,14 @@ export interface IListing {
     inspectionId?: Types.ObjectId;
     viewCount: number;
     inquiryCount: number;
+    viewers: {//Track viewers as much as possible
+        _id: string
+        userId?: string
+        fullName?: string;
+        phoneNumber?: string;
+        viewedAt: Date
+    }[];
+
     createdAt: Date;
     updatedAt: Date;
     expiresAt: Date;
@@ -146,6 +154,30 @@ const listingSchema = new Schema<IListing>(
         isPhysicallyVerified: { type: Boolean, default: false },
         inspectionId: { type: Schema.Types.ObjectId, ref: 'Inspection' },
         viewCount: { type: Number, default: 0 },
+        viewers: {
+            type: [
+                {
+                    userId: {
+                        type: Schema.Types.ObjectId,
+                        ref: 'User',
+                        default: null,
+                    },
+                    fullName: {
+                        type: String,
+                        default: 'Anonymous',
+                    },
+                    phoneNumber: {
+                        type: String,
+                        default: null,
+                    },
+                    viewedAt: {
+                        type: Date,
+                        default: Date.now,
+                    },
+                },
+            ],
+            default: []
+        },
         inquiryCount: { type: Number, default: 0 },
         expiresAt: {
             type: Date,

@@ -2,7 +2,7 @@ import { Response } from 'express';
 import ListingModel from '../models/listing.model';
 import PaymentModel, { EMobileNetwork, EPaymentStatus, EPaymentType } from '../models/payment.model';
 import PricingModel from '../models/pricing.model';
-import { IAuthRequest, IApiResponse } from '../types';
+import { IAuthRequest } from '../types';
 import PaystackService from '../services/paystack.service';
 
 // ============================================

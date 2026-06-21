@@ -17,21 +17,23 @@ import {
     requestSellerCall,
     getMyRequests,
     checkMyRequest,
+    getListingViewers,
 } from '../controllers/listing.ctrl';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { uploadMultipleImages, uploadDocument } from '../config/cloudinary.config';
 
 const router = Router();
 
 // Public routes
 router.get('/', getListings);
-router.get('/:id', getListing);
+router.get('/:id', optionalAuthenticate, getListing); //Works well for public routes that may use auth user
 
 // Protected routes
 router.use(authenticate);
 
 router.post('/', createListing);
 router.get('/user/mine', getMyListings);
+router.get('/:id/viewers', getListingViewers);
 router.put('/:id', updateListing);
 router.delete('/:id', deleteListing);
 router.patch('/:id/mark-sold', markAsSold);
