@@ -227,7 +227,7 @@ class PaystackService {
     // ============================================
     // GENERATE UNIQUE REFERENCE
     // ============================================
-    static generateReference(type: 'LISTING' | 'ESCROW' | 'VERIFY'): string {
+    static generateReference(type: 'LISTING' | 'ESCROW' | 'VERIFY'|'BOOST'): string {
         const timestamp = Date.now().toString(36).toUpperCase();
         const random = Math.random().toString(36).substring(2, 8).toUpperCase();
         return `MOTO-${type}-${timestamp}-${random}`;

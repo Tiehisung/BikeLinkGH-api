@@ -141,11 +141,22 @@ export const getListings = async (req: IAuthRequest, res: Response): Promise<voi
         const limitNum = Math.min(50, Math.max(1, Number(limit))); // Max 50 per page
         const skip = (pageNum - 1) * limitNum;
 
+        let sortOption: any = { createdAt: -1 }; // Default: newest first
+        // ✅ Boost sorting
+        if (sort === '-createdAt' || !sort) {
+            // Boosted listings first, then by date
+            sortOption = { isBoosted: -1, boostExpiresAt: -1, createdAt: -1 };
+        } else if (sort === 'price') {
+            sortOption = { isBoosted: -1, price: 1 };
+        } else if (sort === '-price') {
+            sortOption = { isBoosted: -1, price: -1 };
+        }
+
         // Get listings
         const [listings, total] = await Promise.all([
             ListingModel.find(filter)
                 .populate('seller', 'fullName phoneNumber town isVerified')
-                .sort(sort as string)
+                .sort(sortOption)
                 .skip(skip)
                 .limit(limitNum)
                 .lean(),
@@ -153,11 +164,20 @@ export const getListings = async (req: IAuthRequest, res: Response): Promise<voi
         ]);
 
         const totalPages = Math.ceil(total / limitNum);
-
+        // ✅ Boost count for filters
+        const boostedCount = await ListingModel.countDocuments({
+            ...filter,
+            isBoosted: true,
+            boostExpiresAt: { $gt: new Date() },
+        });
         res.json({
             success: true,
             count: listings.length,
             data: listings,
+            filters: {
+                listingTypes: { /* existing */ },
+                boosted: boostedCount, // ✅ Add boost count
+            },
             pagination: {
                 page: pageNum,
                 limit: limitNum,
