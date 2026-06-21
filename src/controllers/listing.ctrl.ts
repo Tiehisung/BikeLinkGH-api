@@ -204,10 +204,7 @@ export const getListing = async (req: IAuthRequest, res: Response): Promise<void
 
         const isSeller = req.user && listing.seller._id.toString() === req.user._id.toString();
 
-        console.log({ isSeller, user: req.user })
-
         // TRACK VIEWER (Only if not the seller)
-
         if (!isSeller) {
             const viewerData: any = {
                 viewedAt: new Date(),
