@@ -59,7 +59,7 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => req.path === '/health' // Don't rate limit health checks
+    skip: (req) => req.method === 'GET' || req.path === '/health' // Don't rate limit health checks
 });
 
 app.use(cookieParser());

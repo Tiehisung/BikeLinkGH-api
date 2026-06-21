@@ -10,18 +10,14 @@ import LeadModel, { ENotificationChannel } from '../models/lead.model';
 import { sendNewLeadEmail } from '../services/node-mailer/interested-lead.service';
 import { ENV } from '../config/env.config';
 
-// ============================================
 // LISTING FEE CONSTANTS
-// ============================================
 const LISTING_FEES = {
     standard: 25,
     premium: 40,
 };
 
-// ============================================
 // CREATE LISTING
 // @route   POST /api/listings
-// ============================================
 export const createListing = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const seller = req.user!;
@@ -103,10 +99,8 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
     }
 };
 
-// ============================================
 // GET ALL LISTINGS (Public - Browse)
 // @route   GET /api/listings
-// ============================================
 export const getListings = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const {
@@ -195,10 +189,8 @@ export const getListings = async (req: IAuthRequest, res: Response): Promise<voi
     }
 };
 
-// ============================================
 // GET SINGLE LISTING
 // @route   GET /api/listings/:id
-// ============================================
 export const getListing = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listing = await ListingModel.findById(req.params.id)
@@ -206,27 +198,102 @@ export const getListing = async (req: IAuthRequest, res: Response): Promise<void
             .populate('inspectionId');
 
         if (!listing) {
-            res.status(404).json({ success: false, message: 'Listing not found' } as IApiResponse);
+            res.status(404).json({ success: false, message: 'Listing not found' });
             return;
         }
 
-        // Increment view count (don't count seller's own views)
-        if (!req.user || listing.seller._id.toString() !== req.user._id.toString()) {
+        const isSeller = req.user && listing.seller._id.toString() === req.user._id.toString();
+
+        console.log({ isSeller, user: req.user })
+
+        // TRACK VIEWER (Only if not the seller)
+
+        if (!isSeller) {
+            const viewerData: any = {
+                viewedAt: new Date(),
+            };
+
+            if (req.user) {
+                // Authenticated user — store their details
+                viewerData.userId = req.user._id;
+                viewerData.fullName = req.user.fullName;
+                viewerData.phoneNumber = req.user.phoneNumber;
+            } else {
+                // Anonymous user — store as unknown
+                viewerData.fullName = 'Anonymous';
+                viewerData.phoneNumber = null;
+            }
+
+            // Push viewer to array and increment count
+            listing.viewers.push(viewerData);
             listing.viewCount += 1;
             await listing.save();
         }
 
-        res.json({ success: true, data: listing } as IApiResponse);
+        const responseData = listing.toObject();
+
+        // Remove viewers from response if not the seller
+        if (!isSeller) {
+            delete (responseData as any).viewers;
+        }
+
+        // Send responseData, not listing
+        res.json({ success: true, data: responseData } as IApiResponse);
     } catch (error) {
-        console.error('Get listing error:', error);
-        res.status(500).json({ success: false, message: 'Error fetching listing' } as IApiResponse);
+        res.status(500).json({ success: false, message: 'Error fetching listing' });
     }
 };
 
-// ============================================
+// GET VIEWERS FOR A LISTING (Seller only)
+export const getListingViewers = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const listing = await ListingModel.findById(req.params.id)
+            .select('viewers seller brand model');
+
+        if (!listing) {
+            res.status(404).json({ success: false, message: 'Listing not found' });
+            return;
+        }
+
+        // Only seller can see viewers
+        if (listing.seller.toString() !== req.user!._id.toString()) {
+            res.status(403).json({ success: false, message: 'Not authorized' });
+            return;
+        }
+
+        // Sort by most recent first, remove duplicates per user
+        const uniqueViewers = listing.viewers
+            .sort((a, b) => b?.viewedAt?.getTime() - a?.viewedAt?.getTime())
+            .filter((viewer, index, self) => {
+                // Keep first occurrence (most recent) per userId
+                if (!viewer.userId) return true; // Keep all anonymous
+                return self.findIndex(v => v.userId?.toString() === viewer.userId?.toString()) === index;
+            });
+
+        res.json({
+            success: true,
+            count: uniqueViewers.length,
+            data: {
+                listing: {
+                    _id: listing._id,
+                    brand: listing.brand,
+                    model: listing.model,
+                },
+                viewers: uniqueViewers.map(v => ({
+                    fullName: v.fullName,
+                    phoneNumber: v.phoneNumber,
+                    isAuthenticated: !!v.userId,
+                    viewedAt: v.viewedAt,
+                })),
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error fetching viewers' });
+    }
+};
+
 // GET MY LISTINGS (Seller's own listings)
 // @route   GET /api/listings/mine
-// ============================================
 export const getMyListings = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { status, page = 1, limit = 20 } = req.query as any;
@@ -282,10 +349,8 @@ export const getMyListings = async (req: IAuthRequest, res: Response): Promise<v
     }
 };
 
-// ============================================
 // UPDATE LISTING
 // @route   PUT /api/listings/:id
-// ============================================
 export const updateListing = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listing = await ListingModel.findById(req.params.id);
@@ -351,10 +416,8 @@ export const updateListing = async (req: IAuthRequest, res: Response): Promise<v
     }
 };
 
-// ============================================
 // DELETE LISTING
 // @route   DELETE /api/listings/:id
-// ============================================
 export const deleteListing = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listing = await ListingModel.findById(req.params.id);
@@ -379,10 +442,8 @@ export const deleteListing = async (req: IAuthRequest, res: Response): Promise<v
     }
 };
 
-// ============================================
 // MARK LISTING AS SOLD
 // @route   PATCH /api/listings/:id/mark-sold
-// ============================================
 export const markAsSold = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listing = await ListingModel.findById(req.params.id);
@@ -412,10 +473,8 @@ export const markAsSold = async (req: IAuthRequest, res: Response): Promise<void
     }
 };
 
-// ============================================
 // UPLOAD LISTING IMAGES
 // @route   POST /api/listings/:id/images
-// ============================================
 export const uploadListingImages = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listing = await ListingModel.findById(req.params.id);
@@ -464,10 +523,8 @@ export const uploadListingImages = async (req: IAuthRequest, res: Response): Pro
     }
 };
 
-// ============================================
 // UPLOAD LISTING DOCUMENT
 // @route   POST /api/listings/:id/document
-// ============================================
 export const uploadListingDocument = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listing = await ListingModel.findById(req.params.id);
@@ -504,10 +561,8 @@ export const uploadListingDocument = async (req: IAuthRequest, res: Response): P
     }
 };
 
-// ============================================
 // CONTACT SELLER (Increment inquiry count)
 // @route   POST /api/listings/:id/contact
-// ============================================
 export const contactSeller = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listing = await ListingModel.findById(req.params.id)
@@ -540,9 +595,7 @@ export const contactSeller = async (req: IAuthRequest, res: Response): Promise<v
 };
 
 
-// ============================================
 // GET UNPAID LISTINGS (For dashboard reminder)
-// ============================================
 export const getUnpaidListings = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const listings = await ListingModel.find({
@@ -564,9 +617,7 @@ export const getUnpaidListings = async (req: IAuthRequest, res: Response): Promi
     }
 };
 
-// ============================================
 // RETRY PAYMENT FOR LISTING
-// ============================================
 export const retryListingPayment = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { listingId } = req.params;
@@ -616,9 +667,7 @@ export const retryListingPayment = async (req: IAuthRequest, res: Response): Pro
 };
 
 
-// ============================================
 // GET MY LEADS (For sellers)
-// ============================================
 export const getMyLeads = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { page = 1, limit = 20, status } = req.query as any;
@@ -675,9 +724,7 @@ export const getMyLeads = async (req: IAuthRequest, res: Response): Promise<void
         res.status(500).json({ success: false, message: 'Failed to fetch leads' });
     }
 };
-// ============================================
 // MARK LEAD AS CONTACTED
-// ============================================
 export const markLeadContacted = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const lead = await LeadModel.findOneAndUpdate(
@@ -698,9 +745,7 @@ export const markLeadContacted = async (req: IAuthRequest, res: Response): Promi
 
 
 
-// ============================================
 // REQUEST SELLER CALL
-// ============================================
 export const requestSellerCall = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { listingId } = req.params;
@@ -773,9 +818,7 @@ export const requestSellerCall = async (req: IAuthRequest, res: Response): Promi
         listing.inquiryCount += 1;
         await listing.save();
 
-        // ============================================
         // 1. SEND SMS (fire and forget - updates lead later)
-        // ============================================
         at_smsService.sendSms({ to: formattedSellerPhone, message: smsMessage })
             .then(async (result) => {
                 await LeadModel.findByIdAndUpdate(lead._id, {
@@ -808,9 +851,7 @@ export const requestSellerCall = async (req: IAuthRequest, res: Response): Promi
                 });
             });
 
-        // ============================================
         // 2. SEND EMAIL (fire and forget - updates lead later)
-        // ============================================
         if (seller.email) {
             sendNewLeadEmail({
                 sellerEmail: seller.email,
@@ -870,9 +911,7 @@ export const requestSellerCall = async (req: IAuthRequest, res: Response): Promi
     }
 };
 
-// ============================================
 // GET MY REQUESTS (For buyers - listings they requested calls on)
-// ============================================
 export const getMyRequests = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const requests = await LeadModel.find({ buyer: req.user!._id })
