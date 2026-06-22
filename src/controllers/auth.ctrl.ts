@@ -261,8 +261,6 @@ export const verifyIdentity = async (req: IAuthRequest, res: Response): Promise<
             return;
         }
 
-
-
         // Update user record
         const user = await UserModel.findByIdAndUpdate(
             req.user!._id,
