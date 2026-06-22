@@ -10,20 +10,20 @@ router.post('/register', register);
 router.post('/login', login);
 
 // Protected routes
-router.get('/me', authenticate, getMe as any);
-router.put('/profile', authenticate, updateProfile as any);
-router.post('/logout', authenticate, logout as any);
+router.use(authenticate)
+router.get('/me', getMe as any);
+router.put('/profile', updateProfile as any);
+router.post('/logout', logout as any);
 
 // Verification routes
 router.post(
     '/verify-identity',
-    authenticate,
     uploadVerificationDocs, // ← Handles ghanaCardImage + ghanaCardSelfie
     verifyIdentity
 );
-router.get('/verification-status', authenticate, getVerificationStatus);
-router.post('/verify-momo', authenticate, verifyMomo);
-router.post('/confirm-momo', authenticate, confirmMomo);
+router.get('/verification-status', getVerificationStatus);
+router.post('/verify-momo', verifyMomo);
+router.post('/confirm-momo', confirmMomo);
 
 export default router;
 
