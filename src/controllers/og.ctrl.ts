@@ -108,7 +108,7 @@ export const getHomeOG = async (_req: Request, res: Response): Promise<void> => 
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content="${ENV.FRONTEND_URL}" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="MotoMartGH" />
+    <meta property="og:site_name" content="${ENV.APP_NAME}" />
     
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${ENV.APP_NAME} - Buy & Sell Motorbikes Safely in Ghana" />
