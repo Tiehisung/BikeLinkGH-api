@@ -3,6 +3,7 @@ const env = process.env;
 export const ENV = {
     APP_NAME: env.APP_NAME,
     FRONTEND_URL: env.FRONTEND_URL,
+    LOGO_URL: env.LOGO_URL,
     // Server
     PORT: env.PORT || 5000,
     NODE_ENV: env.NODE_ENV || 'development',

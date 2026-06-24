@@ -103,7 +103,7 @@ export const getHomeOG = async (_req: Request, res: Response): Promise<void> => 
     
     <meta property="og:title" content="${ENV.APP_NAME} - Buy & Sell Motorbikes Safely in Ghana" />
     <meta property="og:description" content="Ghana's trusted motorbike marketplace. Verified sellers, inspected bikes, trusted deals." />
-    <meta property="og:image" content="${ENV.FRONTEND_URL}/moto.png" />
+    <meta property="og:image" content="${ENV.LOGO_URL}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content="${ENV.FRONTEND_URL}" />
@@ -113,7 +113,7 @@ export const getHomeOG = async (_req: Request, res: Response): Promise<void> => 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${ENV.APP_NAME} - Buy & Sell Motorbikes Safely in Ghana" />
     <meta name="twitter:description" content="Ghana's trusted motorbike marketplace." />
-    <meta name="twitter:image" content="${ENV.FRONTEND_URL}/moto.png" />
+    <meta name="twitter:image" content="${ENV.LOGO_URL}" />
     
     <meta http-equiv="refresh" content="0; url=${ENV.FRONTEND_URL}" />
 </head>
