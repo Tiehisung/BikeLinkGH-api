@@ -53,10 +53,12 @@ export const getListingOG = async (req: Request, res: Response): Promise<void> =
             <meta property="og:title" content="${title}" />
             <meta property="og:description" content="${description}" />
             <meta property="og:image" content="${image}" />
+            <meta property="og:image:secure_url" content="${image}" />
+            <meta property="og:image:type" content="image/jpeg" />
             <meta property="og:image:width" content="1200" />
             <meta property="og:image:height" content="630" />
             <meta property="og:url" content="${canonicalUrl}" />
-            <meta property="og:type" content="product" />
+            <meta property="og:type" content="website" />
             <meta property="og:site_name" content="${ENV.APP_NAME}" />
             <meta property="product:price:amount" content="${listing.price || 0}" />
             <meta property="product:price:currency" content="GHS" />
@@ -94,6 +96,8 @@ export const getListingOG = async (req: Request, res: Response): Promise<void> =
 // OG TAGS FOR HOME PAGE
 // ============================================
 export const getHomeOG = async (_req: Request, res: Response): Promise<void> => {
+    const image = ENV.LOGO_URL
+    const title = ENV.APP_NAME
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,24 +105,26 @@ export const getHomeOG = async (_req: Request, res: Response): Promise<void> => 
     <title>${ENV.APP_NAME} - Buy & Sell Motorbikes Safely in Ghana</title>
     <meta name="description" content="Ghana's trusted motorbike marketplace. Verified sellers, inspected bikes, trusted deals in Upper West." />
     
-    <meta property="og:title" content="${ENV.APP_NAME} - Buy & Sell Motorbikes Safely in Ghana" />
+    <meta property="og:title" content="${title} - Buy & Sell Motorbikes Safely in Ghana" />
     <meta property="og:description" content="Ghana's trusted motorbike marketplace. Verified sellers, inspected bikes, trusted deals." />
-    <meta property="og:image" content="${ENV.LOGO_URL}" />
+    <meta property="og:image" content="${image}" />
+    <meta property="og:image:secure_url" content="${image}" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content="${ENV.FRONTEND_URL}" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="${ENV.APP_NAME}" />
+    <meta property="og:site_name" content="${title}" />
     
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${ENV.APP_NAME} - Buy & Sell Motorbikes Safely in Ghana" />
+    <meta name="twitter:title" content="${title} - Buy & Sell Motorbikes Safely in Ghana" />
     <meta name="twitter:description" content="Ghana's trusted motorbike marketplace." />
-    <meta name="twitter:image" content="${ENV.LOGO_URL}" />
+    <meta name="twitter:image" content="${image}" />
     
     <meta http-equiv="refresh" content="0; url=${ENV.FRONTEND_URL}" />
 </head>
 <body>
-    <h1>${ENV.APP_NAME}</h1>
+    <h1>${title}</h1>
     <p>Buy & Sell Motorbikes Safely in Ghana</p>
 </body>
 </html>`;
