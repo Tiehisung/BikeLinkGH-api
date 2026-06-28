@@ -41,12 +41,7 @@ export const sendTestSms = async (req: IAuthRequest, res: Response): Promise<voi
         });
 
         res.json({
-            success: true,
-            data: {
-                smsSent: result.success,
-                messageId: result.messageId,
-                recipients: result.recipients,
-            },
+            ...result,
         } as IApiResponse);
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to send test SMS' } as IApiResponse);
