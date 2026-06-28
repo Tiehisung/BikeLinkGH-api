@@ -23,6 +23,7 @@ import contactRoutes from './routes/contact.routes';
 import pricingRoutes from './routes/pricing.routes';
 import boostRoutes from './routes/boost.routes';
 import ogRoutes from './routes/og.routes';
+import smsRoutes from './routes/sms.routes';
 
 import { notFound, errorHandler } from './middleware/error-handler.middleware';
 import { runUpdate } from './runUpdate';// server/app.ts
@@ -161,6 +162,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/boost', boostRoutes);
 app.use('/og', ogRoutes)
+app.use('/api/sms', smsRoutes)
 // ==================== ERROR HANDLING ====================
 // 404 handler
 app.use(notFound);

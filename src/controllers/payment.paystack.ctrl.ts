@@ -5,14 +5,7 @@ import ListingModel from '../models/listing.model';
 import { IAuthRequest } from '../types';
 import { applyBoost } from './boost.controller';
 import PricingModel from '../models/pricing.model';
-
-const PAYMENT_FEES = {
-    listing_standard: 25,
-    listing_premium: 40,
-    verification: 10,
-};
-
- 
+import { ENV } from '../config/env.config';
 
 export const initiateMobileMoneyPayment = async (
     req: IAuthRequest,
@@ -24,7 +17,7 @@ export const initiateMobileMoneyPayment = async (
             momoNumber,
             network,
             paymentType = EPaymentType.LISTING_FEE,
-            metadata = {}  // ✅ Accept additional metadata (boostKey, durationDays, etc.)
+            metadata = {}  // Accept additional metadata (boostKey, durationDays, etc.)
         } = req.body;
         const user = req.user!;
 
@@ -33,9 +26,9 @@ export const initiateMobileMoneyPayment = async (
         let productKey = '';
         let referencePrefix = 'LISTING';
 
-        // ============================================
+
         // LISTING FEE
-        // ============================================
+
         if (paymentType === EPaymentType.LISTING_FEE && listingId) {
             const listing = await ListingModel.findById(listingId);
             if (!listing) {
@@ -65,9 +58,9 @@ export const initiateMobileMoneyPayment = async (
             referencePrefix = 'LISTING';
         }
 
-        // ============================================
+
         // BOOST (Premium Upgrade)
-        // ============================================
+
         else if (paymentType === EPaymentType.PREMIUM_UPGRADE && listingId) {
             const boostKey = metadata.boostKey;
             if (!boostKey) {
@@ -127,9 +120,9 @@ export const initiateMobileMoneyPayment = async (
             metadata.durationDays = pricing.metadata?.durationDays || 7;
         }
 
-        // ============================================
+
         // VERIFICATION FEE
-        // ============================================
+
         else if (paymentType === EPaymentType.VERIFICATION_FEE) {
             const pricing = await PricingModel.findOne({
                 category: 'verification',
@@ -143,17 +136,17 @@ export const initiateMobileMoneyPayment = async (
             referencePrefix = 'VERIFY';
         }
 
-        // ============================================
+
         // INVALID
-        // ============================================
+
         else {
             res.status(400).json({ success: false, message: 'Invalid payment type' });
             return;
         }
 
-        // ============================================
+
         // CREATE PAYMENT & CHARGE
-        // ============================================
+
         const reference = PaystackService.generateReference(referencePrefix as any);
         const formattedPhone = PaystackService.formatPhone(momoNumber || user.phoneNumber);
         const provider = PaystackService.mapNetwork(network || 'MTN');
@@ -230,9 +223,13 @@ export const initiateCheckout = async (req: IAuthRequest, res: Response): Promis
             return;
         }
 
-        const amount = listing.listingType === 'premium'
-            ? PAYMENT_FEES.listing_premium
-            : PAYMENT_FEES.listing_standard;
+        const pricingKey = listing.listingType === 'premium' ? 'premium' : 'standard';
+        const pricing = await PricingModel.findOne({
+            category: 'listing_fee',
+            key: pricingKey,
+            isActive: true,
+        });
+        const amount = pricing?.amount || (listing.listingFee) || 20;
 
         const reference = PaystackService.generateReference('LISTING');
 
@@ -252,7 +249,7 @@ export const initiateCheckout = async (req: IAuthRequest, res: Response): Promis
             email: `${user.phoneNumber}@motomartgh.com`,
             amount,
             reference,
-            callback_url: `${process.env.FRONTEND_URL}/dashboard/listings?payment=success&ref=${reference}`,
+            callback_url: `${ENV.FRONTEND_URL}/dashboard/listings?payment=success&ref=${reference}`,
             channels: ['mobile_money', 'card'],
             metadata: {
                 paymentId: payment._id.toString(),
@@ -287,7 +284,7 @@ export const paystackWebhook = async (req: Request, res: Response): Promise<void
         const signature = req.headers['x-paystack-signature'] as string;
         const isValid = paystackService.validateWebhook(req.body, signature);
 
-        if (!isValid && process.env.NODE_ENV === 'production') {
+        if (!isValid && ENV.NODE_ENV === 'production') {
             res.status(401).json({ success: false, message: 'Invalid signature' });
             return;
         }
@@ -312,9 +309,7 @@ export const paystackWebhook = async (req: Request, res: Response): Promise<void
     }
 };
 
-// ============================================
 // Helper: Update payment to paid status
-// ============================================
 const markPaymentAsPaid = async (
     payment: any,
     data: { transaction_id?: number; channel?: string; gateway_response?: string; paid_at?: string }
@@ -333,8 +328,8 @@ const markPaymentAsPaid = async (
         });
     }
 
-    // ✅ HANDLE BOOST PAYMENT
-    // ============================================
+    //  HANDLE BOOST PAYMENT
+
     if (payment.paymentType === 'premium_upgrade' && payment.listing && payment.metadata?.boostKey) {
         const durationDays = payment.metadata.durationDays || 7;
         await applyBoost(
@@ -346,9 +341,7 @@ const markPaymentAsPaid = async (
     }
 };
 
-// ============================================
 // VERIFY PAYMENT (Fixed)
-// ============================================
 export const verifyPayment = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { reference } = req.params;
@@ -440,7 +433,7 @@ async function handleChargeSuccess(data: any): Promise<void> {
 }
 
 
- 
+
 export const getPaymentHistory = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const payments = await PaymentModel.find({ payer: req.user!._id })

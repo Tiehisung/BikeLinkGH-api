@@ -5,10 +5,11 @@ import UserModel from '../models/user.model';
 import { IAuthRequest, IApiResponse } from '../types';
 import { EPaymentStatus } from '../models/payment.model';
 import { EPAYMENT_FEES } from '../data/payment';
-import ATSmsService, { at_smsService } from '../services/sms/at.service';
 import LeadModel, { ENotificationChannel } from '../models/lead.model';
 import { sendNewLeadEmail } from '../services/node-mailer/interested-lead.service';
 import { ENV } from '../config/env.config';
+import { formatPhone, generateSellerSms, sendSms } from '../services/sms/at.service';
+import PricingModel from '../models/pricing.model';
 
 // LISTING FEE CONSTANTS
 const LISTING_FEES = {
@@ -51,9 +52,26 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
             listingType = 'standard',
             images
         } = req.body;
+ 
+        // GET LISTING FEE FROM DATABASE
+     
+        const listingKey = listingType === 'premium' ? 'premium' : 'standard';
 
-        // Calculate listing fee
-        const listingFee = LISTING_FEES[listingType as keyof typeof LISTING_FEES];
+        const pricing = await PricingModel.findOne({
+            category: 'listing_fee',
+            key: listingKey,
+            isActive: true,
+        });
+
+        if (!pricing) {
+            res.status(400).json({
+                success: false,
+                message: 'Listing type not available. Please try again.',
+            });
+            return;
+        }
+
+        const listingFee = pricing.amount;
 
         // Create listing (always starts as unpaid and pending)
         const listing = await ListingModel.create({
@@ -788,10 +806,10 @@ export const requestSellerCall = async (req: IAuthRequest, res: Response): Promi
 
         // Generate message
         const bikeTitle = `${listing.brand} ${listing.model || ''}`.trim();
-        const formattedSellerPhone = ATSmsService.formatPhone(seller.phoneNumber);
+        const formattedSellerPhone = formatPhone(seller.phoneNumber);
         const listingUrl = `${ENV.FRONTEND_URL}/listing/${listing._id}`;
 
-        const smsMessage = ATSmsService.generateSellerSms({
+        const smsMessage = generateSellerSms({
             sellerName: seller.fullName,
             buyerName: buyer.fullName,
             buyerPhone: phone,
@@ -816,7 +834,7 @@ export const requestSellerCall = async (req: IAuthRequest, res: Response): Promi
         await listing.save();
 
         // 1. SEND SMS (fire and forget - updates lead later)
-        at_smsService.sendSms({ to: formattedSellerPhone, message: smsMessage })
+        sendSms({ to: formattedSellerPhone, message: smsMessage })
             .then(async (result) => {
                 await LeadModel.findByIdAndUpdate(lead._id, {
                     smsSent: result.success,
