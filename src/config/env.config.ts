@@ -56,5 +56,10 @@ export const ENV = {
         PORT: env.SMTP_PORT,
         AUTH_USER: env.SMTP_USER,
         AUTH_PASS: env.SMTP_PASS,
-    }
+    },
+    AT_SMS: {
+        AT_USERNAME: env.AT_USERNAME,
+        AT_API_KEY: env.AT_API_KEY,
+        AT_SENDER_ID: env.AT_SENDER_ID,
+    },
 } as const;

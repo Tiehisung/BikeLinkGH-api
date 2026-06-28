@@ -1,5 +1,5 @@
 {
-  "name": "mototrustgh-api",
+  "name": "bikelinkgh-api",
   "version": "1.0.0",
   "description": "MotoClear API - Used Motorbike Marketplace",
   "main": "index.js",
@@ -11,19 +11,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Tiehisung/mototrust-api.git"
+    "url": "git+https://github.com/Tiehisung/bikelinkgh-api.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/Tiehisung/mototrust-api/issues"
+    "url": "https://github.com/Tiehisung/bikelinkgh-api/issues"
   },
-  "homepage": "https://github.com/Tiehisung/mototrust-api#readme",
+  "homepage": "https://github.com/Tiehisung/bikelinkgh-api#readme",
   "dependencies": {
     "@auth/express": "^0.12.1",
     "@vercel/og": "^0.11.1",
+    "africastalking": "^0.8.0",
     "axios": "^1.17.0",
     "bcryptjs": "^3.0.3",
     "canvas": "^3.2.3",
@@ -45,6 +46,7 @@
     "resend": "^6.12.4"
   },
   "devDependencies": {
+    "@types/africastalking": "^0.8.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",

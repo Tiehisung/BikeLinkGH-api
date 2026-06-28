@@ -1,8 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-// ============================================
 // INTERFACE
-// ============================================
 export interface IPricing extends Document {
     category: string;        // 'listing_fee', 'featured_boost', 'verification', 'subscription'
     categoryName: string;    // 'Listing Fees', 'Featured Boosts'
@@ -21,9 +19,7 @@ export interface IPricing extends Document {
     updatedAt: Date;
 }
 
-// ============================================
 // SCHEMA
-// ============================================
 const pricingSchema = new Schema<IPricing>(
     {
         category: {
@@ -85,9 +81,7 @@ const pricingSchema = new Schema<IPricing>(
     { timestamps: true }
 );
 
-// ============================================
 // INDEXES
-// ============================================
 pricingSchema.index({ category: 1, isActive: 1, displayOrder: 1 });
 pricingSchema.index({ category: 1, key: 1 }, { unique: true }); // Unique key per category
 pricingSchema.index({ isActive: 1 });
