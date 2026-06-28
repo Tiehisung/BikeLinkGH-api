@@ -1,5 +1,6 @@
 import AfricasTalking from 'africastalking';
 import { ENV } from '../../config/env.config';
+import SmsLogModel from '../../models/sms-log.model';
 
 // INITIALIZE
 const at = AfricasTalking({
@@ -52,6 +53,23 @@ export const sendSms = async (payload: ATSmsPayload): Promise<ATSmsResponse> => 
             : await sms.send(options);
 
         const data = result.SMSMessageData;
+
+   
+        // ✅ LOG OUTGOING SMS
+ 
+        if (data.Recipients) {
+            for (const recipient of data.Recipients) {
+                await SmsLogModel.create({
+                    messageId: recipient.messageId || data.Message,
+                    recipient: recipient.number,
+                    status: recipient.status || 'Pending',
+                    cost: recipient.cost,
+                    networkCode: (recipient as any).networkCode,
+                    raw: recipient,
+                });
+            }
+        }
+
 
         return {
             success: data.Recipients?.some((r: any) => r.status === 'Success') || false,

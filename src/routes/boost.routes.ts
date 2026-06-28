@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { initiateBoost, checkBoostStatus } from '../controllers/boost.controller';
+import { initiateBoost, checkBoostStatus } from '../controllers/boost.ctrl';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();

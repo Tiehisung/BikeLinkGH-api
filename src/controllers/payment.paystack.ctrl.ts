@@ -3,7 +3,7 @@ import PaystackService, { paystackService } from '../services/paystack.service';
 import PaymentModel, { EMobileNetwork, EPaymentChannel, EPaymentStatus, EPaymentType } from '../models/payment.model';
 import ListingModel from '../models/listing.model';
 import { IAuthRequest } from '../types';
-import { applyBoost } from './boost.controller';
+import { applyBoost } from './boost.ctrl';
 import PricingModel from '../models/pricing.model';
 import { ENV } from '../config/env.config';
 
