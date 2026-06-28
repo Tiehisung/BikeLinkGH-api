@@ -24,9 +24,9 @@ export interface ATSmsPayload {
 
 export interface ATSmsResponse {
     success: boolean;
-    messageId?: string;
+    message?: string;
     recipients?: number;
-    error?: string;
+    details?: any;
 }
 
 export interface ATAccountInfo {
@@ -54,9 +54,9 @@ export const sendSms = async (payload: ATSmsPayload): Promise<ATSmsResponse> => 
 
         const data = result.SMSMessageData;
 
-   
+
         // ✅ LOG OUTGOING SMS
- 
+
         if (data.Recipients) {
             for (const recipient of data.Recipients) {
                 await SmsLogModel.create({
@@ -72,9 +72,10 @@ export const sendSms = async (payload: ATSmsPayload): Promise<ATSmsResponse> => 
 
 
         return {
-            success: data.Recipients?.some((r: any) => r.status === 'Success') || false,
-            messageId: data.Message,
+            success: data.Recipients?.some((r) => r.status === 'Success') || false,
+            message: data.Message,
             recipients: data.Recipients?.length || 0,
+            details: data
         };
     } catch (error: any) {
         console.error('SMS send error:', error?.response?.data || error?.message || error);
@@ -84,7 +85,7 @@ export const sendSms = async (payload: ATSmsPayload): Promise<ATSmsResponse> => 
 
         return {
             success: false,
-            error: error?.message || error?.response?.data?.SMSMessageData?.Message || 'Failed to send SMS',
+            message: error?.message || error?.response?.data?.SMSMessageData?.Message || 'Failed to send SMS',
         };
     }
 };

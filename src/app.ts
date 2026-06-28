@@ -1,5 +1,5 @@
 // src/app.ts
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -26,7 +26,6 @@ import ogRoutes from './routes/og.routes';
 import smsRoutes from './routes/sms.routes';
 
 import { notFound, errorHandler } from './middleware/error-handler.middleware';
-import { runUpdate } from './runUpdate';// server/app.ts
 import { IAuthRequest } from './types';
 
 // Import middleware
@@ -39,7 +38,7 @@ app.set('trust proxy', 1);
 // To serve static assets from public such as favicon
 app.use(express.static(path.join(__dirname, '../public')));
 
-// ==================== SECURITY MIDDLEWARE ====================
+// SECURITY MIDDLEWARE
 // Helmet for security headers
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
@@ -76,9 +75,9 @@ const authLimiter = rateLimit({
 app.use('/api/auth', authLimiter);
 
 
-// ============================================
+//====
 // LOGIN: 20 failed attempts per phone per 15 min
-// ============================================
+//====
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20,
@@ -93,9 +92,9 @@ const loginLimiter = rateLimit({
     },
 });
 
-// ============================================
+//====
 // REGISTER: 10 accounts per IP per hour
-// ============================================
+//====
 const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 10,
@@ -113,14 +112,14 @@ const registerLimiter = rateLimit({
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth/register', registerLimiter);
 
-// ==================== PARSING MIDDLEWARE ====================
+// PARSING MIDDLEWARE
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Compression - compress all responses - Makes responses FASTER and reduces bandwidth usage
 app.use(compression());
 
-// ==================== HEALTH CHECK ====================
+// HEALTH CHECK
 app.get('/health', (req: IAuthRequest, res: Response) => {
     console.log(req?.user)
     res.status(200).json({
@@ -145,9 +144,9 @@ app.get('/', (req: IAuthRequest, res: Response) => {
     });
 });
 
-app.get('/test-api/update', runUpdate);
+ 
 
-// ==================== API ROUTES ====================
+// API ROUTES
 app.use('/api/auth', authRoutes);
 app.use('/api/script', scriptRoutes);
 app.use('/api/listings', listingsRoutes);
@@ -163,7 +162,7 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/boost', boostRoutes);
 app.use('/og', ogRoutes)
 app.use('/api/sms', smsRoutes)
-// ==================== ERROR HANDLING ====================
+// ERROR HANDLING
 // 404 handler
 app.use(notFound);
 

@@ -41,8 +41,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             } as IApiResponse);
             return;
         }
-        if (email.trim()) {
-            const existingUserEmail = await UserModel.findOne({ email: email.trim().toLowercase() });
+        if (email && email.trim()) {
+            const existingUserEmail = await UserModel.findOne({ email: email.trim().toLowerCase() });
             if (existingUserEmail) {
                 res.status(400).json({
                     success: false,
@@ -82,6 +82,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             },
         } as IApiResponse);
     } catch (error: any) {
+        console.log(error)
         if (error.name === 'ValidationError') {
             const messages = Object.values(error.errors).map((err: any) => err.message);
             res.status(400).json({
@@ -93,6 +94,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({
             success: false,
             message: 'Server error during registration',
+
+            error
         } as IApiResponse);
     }
 };
