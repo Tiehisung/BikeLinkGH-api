@@ -1,8 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 
-// ============================================
 // TYPES
-// ============================================
 export interface InitializeTransactionParams {
     email: string;
     amount: number;           // In GHS
@@ -63,9 +61,7 @@ export interface VerifyTransactionResponse extends PaystackResponse {
     };
 }
 
-// ============================================
 // PAYSTACK SERVICE CLASS
-// ============================================
 class PaystackService {
     private secretKey: string;
     private publicKey: string;
@@ -87,9 +83,7 @@ class PaystackService {
         });
     }
 
-    // ============================================
     // INITIALIZE TRANSACTION (Checkout page)
-    // ============================================
     async initializeTransaction(params: InitializeTransactionParams): Promise<PaystackResponse> {
         try {
             const response = await this.client.post('/transaction/initialize', {
@@ -122,9 +116,7 @@ class PaystackService {
         }
     }
 
-    // ============================================
     // CHARGE MOBILE MONEY DIRECTLY (USSD push)
-    // ============================================
     async chargeMobileMoney(params: ChargeMobileMoneyParams): Promise<PaystackResponse> {
         try {
             const response = await this.client.post('/charge', {
@@ -161,9 +153,7 @@ class PaystackService {
         }
     }
 
-    // ============================================
     // VERIFY TRANSACTION
-    // ============================================
     async verifyTransaction(reference: string): Promise<VerifyTransactionResponse> {
         try {
             const response = await this.client.get(`/transaction/verify/${reference}`);
@@ -194,9 +184,7 @@ class PaystackService {
         }
     }
 
-    // ============================================
     // LIST BANKS (for bank transfer option)
-    // ============================================
     async listBanks(): Promise<any> {
         try {
             const response = await this.client.get('/bank?country=ghana');
@@ -206,9 +194,7 @@ class PaystackService {
         }
     }
 
-    // ============================================
     // VALIDATE WEBHOOK SIGNATURE
-    // ============================================
     validateWebhook(body: any, signature: string): boolean {
         if (!this.webhookSecret) {
             console.warn('⚠️  Paystack webhook secret not set');
@@ -224,18 +210,14 @@ class PaystackService {
         return hash === signature;
     }
 
-    // ============================================
     // GENERATE UNIQUE REFERENCE
-    // ============================================
     static generateReference(type: 'LISTING' | 'ESCROW' | 'VERIFY'|'BOOST'): string {
         const timestamp = Date.now().toString(36).toUpperCase();
         const random = Math.random().toString(36).substring(2, 8).toUpperCase();
         return `MOTO-${type}-${timestamp}-${random}`;
     }
 
-    // ============================================
     // MAP NETWORK TO PAYSTACK PROVIDER
-    // ============================================
     static mapNetwork(network: string): 'mtn' | 'vod' | 'tgo' {
         const map: Record<string, 'mtn' | 'vod' | 'tgo'> = {
             MTN: 'mtn',
@@ -245,9 +227,7 @@ class PaystackService {
         return map[network] || 'mtn';
     }
 
-    // ============================================
     // FORMAT PHONE NUMBER FOR PAYSTACK
-    // ============================================
     static formatPhone(phone: string): string {
         // Remove any spaces or dashes
         let cleaned = phone.replace(/[\s-]/g, '');

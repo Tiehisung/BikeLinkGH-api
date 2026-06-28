@@ -838,14 +838,13 @@ export const requestSellerCall = async (req: IAuthRequest, res: Response): Promi
             .then(async (result) => {
                 await LeadModel.findByIdAndUpdate(lead._id, {
                     smsSent: result.success,
-                    smsMessageId: result.messageId,
-                    smsError: result.error,
+                    smsMessageId: result.message,
+                  
                     $push: {
                         notifications: {
                             channel: ENotificationChannel.SMS,
                             success: result.success,
-                            messageId: result.messageId,
-                            error: result.error,
+                            messageId: result.message,
                             sentAt: new Date(),
                         },
                     },
