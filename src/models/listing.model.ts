@@ -44,15 +44,19 @@ export interface IListing {
         viewedAt: Date
     }[];
 
-    createdAt: Date;
-    updatedAt: Date;
-    expiresAt: Date;
+    
 
     isBoosted: boolean,
     boostType: '7day' | '30day' | null,
     boostExpiresAt: Date,
     boostPurchasedAt: Date,
     boostPaymentReference: string,
+
+    duplicatedFrom?: Types.ObjectId;
+    
+    createdAt: Date;
+    updatedAt: Date;
+    expiresAt: Date;
 }
 
 export enum EBikeCondition {
@@ -205,6 +209,12 @@ const listingSchema = new Schema<IListing>(
         },
         boostPaymentReference: {
             type: String,
+        },
+
+        duplicatedFrom: {
+            type: Schema.Types.ObjectId,
+            ref: 'Listing',
+            default: null,
         },
     },
     { timestamps: true }

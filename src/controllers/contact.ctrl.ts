@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
-import ContactModel from '../models/contact.model';
+import ContactModel, { EMessageStatus } from '../models/contact.model';
 import { IApiResponse, IAuthRequest } from '../types';
 import { sendContactNotification } from '../services/node-mailer/contact-email.service';
 import { sendContactNotificationUsingResend } from '../services/email-resend-version.service';
 
-// ============================================
 // SUBMIT CONTACT FORM
-// ============================================
 export const submitContact = async (req: Request, res: Response): Promise<void> => {
     try {
         const { fullName, phoneNumber, email, inquiryType, message } = req.body;
@@ -49,7 +47,7 @@ export const submitContact = async (req: Request, res: Response): Promise<void> 
             email: email || undefined,
             inquiryType,
             message: message || undefined,
-            status: 'new',
+            status: 'unread',
         });
 
         console.log(message)
@@ -87,15 +85,14 @@ export const submitContact = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-// ============================================
 // ADMIN: GET ALL CONTACTS
-// ============================================
 export const getAllContacts = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const {
             page = 1,
             limit = 20,
             status,
+            category,
             inquiryType,
             search,
             sort = '-createdAt',
@@ -104,6 +101,7 @@ export const getAllContacts = async (req: IAuthRequest, res: Response): Promise<
         // Build filter
         const filter: any = {};
         if (status && status !== 'all') filter.status = status;
+        if (category && category !== 'all') filter.category = category;
         if (inquiryType && inquiryType !== 'all') filter.inquiryType = inquiryType;
         if (search) {
             filter.$or = [
@@ -161,9 +159,7 @@ export const getAllContacts = async (req: IAuthRequest, res: Response): Promise<
         } as IApiResponse);
     }
 };
-// ============================================
 // ADMIN: GET SINGLE CONTACT
-// ============================================
 export const getContactById = async (req: Request, res: Response): Promise<void> => {
     try {
         const contact = await ContactModel.findById(req.params.id);
@@ -188,27 +184,57 @@ export const getContactById = async (req: Request, res: Response): Promise<void>
     }
 };
 
-// ============================================
 // ADMIN: UPDATE CONTACT STATUS
-// ============================================
 export const updateContactStatus = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const { status, notes } = req.body;
+        const { notes } = req.body;
 
-        const validStatuses = ['new', 'read', 'replied', 'closed'];
-        if (!validStatuses.includes(status)) {
+        const contact = await ContactModel.findById(id,);
+
+        if (!contact) {
+            res.status(404).json({
+                success: false,
+                message: 'Contact not found',
+            } as IApiResponse);
+            return;
+        }
+        const newStatus = contact.status == EMessageStatus.READ ? EMessageStatus.UNREAD : EMessageStatus.READ
+        // update
+        contact.status = newStatus
+        if (notes) contact.notes = notes;
+        await contact.save()
+
+        res.json({
+            success: true,
+            message: `Contact marked as ${newStatus}`,
+            data: contact,
+        } as IApiResponse);
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update contact',
+        } as IApiResponse);
+    }
+};
+export const updateContactCategory = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { category, notes } = req.body;
+
+        const validCategories = ['starred', 'important', 'spam', 'archived', null]
+        if (!validCategories.includes(category)) {
             res.status(400).json({
                 success: false,
-                message: `Invalid status. Use: ${validStatuses.join(', ')}`,
+                message: `Invalid category. Use: ${validCategories.join(', ')}`,
             } as IApiResponse);
             return;
         }
 
-        const update: any = { status };
+        const update: any = { category };
         if (notes) update.notes = notes;
 
-        const contact = await ContactModel.findByIdAndUpdate(id, update, { new: true });
+        const contact = await ContactModel.findByIdAndUpdate(id, update,);
 
         if (!contact) {
             res.status(404).json({
@@ -220,7 +246,7 @@ export const updateContactStatus = async (req: Request, res: Response): Promise<
 
         res.json({
             success: true,
-            message: `Contact marked as ${status}`,
+            message: `Contact flagged as ${category}`,
             data: contact,
         } as IApiResponse);
     } catch (error) {
@@ -232,9 +258,8 @@ export const updateContactStatus = async (req: Request, res: Response): Promise<
 };
 
 
-// ============================================
+
 // ADMIN: DELETE CONTACT
-// ============================================
 export const deleteContact = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const contact = await ContactModel.findByIdAndDelete(req.params.id);

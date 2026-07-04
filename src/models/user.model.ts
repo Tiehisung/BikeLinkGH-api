@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 
 export enum EUserRole {
     SELLER = "seller",
-    BUYER = "buyer",
+    BUYER = "buyer", 
+    MANAGER = "manager",
     ADMIN = "admin"
 }
 
@@ -111,6 +112,7 @@ export default UserModel;
 export interface IUser extends Document {
     fullName: string;
     phoneNumber: string;
+    email: string;
     password: string;
     role: EUserRole
     isVerified: boolean;

@@ -1,34 +1,42 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-// ============================================
 // INTERFACE
-// ============================================
 export interface IContact extends Document {
     fullName: string;
     phoneNumber: string;
     email?: string;
-    inquiryType: InquiryType;
+    inquiryType: `${EInquiryType}`;
     message?: string;
-    status: ContactStatus;
+    status: `${EMessageStatus}`;
+    category: `${EMessageCategory}`;
     notes?: string;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export type InquiryType =
-    | 'buying'
-    | 'selling'
-    | 'verification'
-    | 'payment'
-    | 'listing'
-    | 'partnership'
-    | 'other';
+export enum EMessageStatus {
+    UNREAD = 'unread',
+    READ = 'read',
+}
 
-export type ContactStatus = 'new' | 'read' | 'replied' | 'closed';
+export enum EMessageCategory {
+    STARRED = 'starred',
+    IMPORTANT = 'important',
+    SPAM = 'spam',
+    ARCHIVED = 'archived',
+}
 
-// ============================================
+export enum EInquiryType {
+    BUYING = 'buying',
+    SELLING = 'selling',
+    VERIFICATION = 'verification',
+    PAYMENT = 'payment',
+    LISTING = 'listing',
+    PARTNERSHIP = 'partnership',
+    OTHER = 'other',
+}
+
 // SCHEMA
-// ============================================
 const contactSchema = new Schema<IContact>(
     {
         fullName: {
@@ -49,7 +57,7 @@ const contactSchema = new Schema<IContact>(
         inquiryType: {
             type: String,
             required: [true, 'Inquiry type is required'],
-            enum: ['buying', 'selling', 'verification', 'payment', 'listing', 'partnership', 'other'],
+            enum: Object.values(EInquiryType),
         },
         message: {
             type: String,
@@ -57,8 +65,13 @@ const contactSchema = new Schema<IContact>(
         },
         status: {
             type: String,
-            enum: ['new', 'read', 'replied', 'closed'],
-            default: 'new',
+            enum: Object.values(EMessageStatus),
+            default:EMessageStatus.UNREAD,
+        },
+        category: {
+            type: String,
+            enum: Object.values(EMessageCategory),
+            default: null,
         },
         notes: {
             type: String,
@@ -68,9 +81,7 @@ const contactSchema = new Schema<IContact>(
     { timestamps: true }
 );
 
-// ============================================
 // INDEXES
-// ============================================
 contactSchema.index({ status: 1, createdAt: -1 });
 contactSchema.index({ inquiryType: 1 });
 contactSchema.index({ createdAt: -1 });
