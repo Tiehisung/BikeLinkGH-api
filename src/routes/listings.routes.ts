@@ -18,6 +18,7 @@ import {
     getMyRequests,
     checkMyRequest,
     getListingViewers,
+    duplicateListing,
 } from '../controllers/listing.ctrl';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { uploadMultipleImages, uploadDocument } from '../config/cloudinary.config';
@@ -32,6 +33,7 @@ router.get('/:id', optionalAuthenticate, getListing); //Works well for public ro
 router.use(authenticate);
 
 router.post('/', createListing);
+router.post('/:id/duplicate', duplicateListing);
 router.get('/user/mine', getMyListings);
 router.get('/:id/viewers', getListingViewers);
 router.put('/:id', updateListing);

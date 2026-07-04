@@ -52,9 +52,9 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
             listingType = 'standard',
             images
         } = req.body;
- 
+
         // GET LISTING FEE FROM DATABASE
-     
+
         const listingKey = listingType === 'premium' ? 'premium' : 'standard';
 
         const pricing = await PricingModel.findOne({
@@ -116,7 +116,93 @@ export const createListing = async (req: IAuthRequest, res: Response): Promise<v
         res.status(500).json({ success: false, message: 'Error creating listing' } as IApiResponse);
     }
 };
+// DUPLICATE LISTING
+export const duplicateListing = async (req: IAuthRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const user = req.user!;
 
+        // Find original listing
+        const original = await ListingModel.findById(id);
+
+        if (!original) {
+            res.status(404).json({ success: false, message: 'Listing not found' });
+            return;
+        }
+
+        // Check ownership
+        if (original.seller.toString() !== user._id.toString()) {
+            res.status(403).json({ success: false, message: 'Not your listing' });
+            return;
+        }
+
+        // Get current listing fee from DB
+        const pricing = await PricingModel.findOne({
+            category: 'listing_fee',
+            key: original.listingType,
+            isActive: true,
+        });
+
+        // Create duplicate with reset fields
+        const duplicate = await ListingModel.create({
+            // ✅ Copied fields
+            duplicatedFrom: original._id,
+            seller: user._id,
+            brand: original.brand,
+            model: original.model,
+            year: original.year,
+            mileage: original.mileage,
+            engineCapacity: original.engineCapacity,
+            condition: original.condition,
+            price: original.price,
+            priceNegotiable: original.priceNegotiable,
+            location: original.location,
+            description: original.description,
+            reasonForSelling: original.reasonForSelling,
+            hasDocuments: original.hasDocuments,
+            documentType: original.documentType,
+            chassisNumber: original.chassisNumber,
+            engineNumber: original.engineNumber,
+            listingType: original.listingType,
+            listingFee: pricing?.amount || (original.listingType === 'premium' ? 45 : 25),
+            images: original.images, // ✅ Copy existing images
+
+            // ❌ Reset fields
+            paymentStatus: 'pending',
+            status: 'pending',
+            paymentReference: undefined,
+            adminNotes: undefined,
+            reviewedBy: undefined,
+            reviewedAt: undefined,
+            isPhysicallyVerified: false,
+            inspectionId: undefined,
+            viewCount: 0,
+            inquiryCount: 0,
+            isBoosted: false,
+            boostType: undefined,
+            boostExpiresAt: undefined,
+            boostPurchasedAt: undefined,
+            boostPaymentReference: undefined,
+            viewers: [],
+        });
+
+        await duplicate.populate('seller', 'fullName phoneNumber town isVerified');
+
+        res.status(201).json({
+            success: true,
+            message: 'Listing duplicated. Please review and pay the listing fee.',
+            data: duplicate,
+        });
+    } catch (error: any) {
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map((err: any) => err.message);
+            res.status(400).json({ success: false, message: messages.join(', ') });
+            return;
+        }
+        console.error('Duplicate listing error:', error);
+        res.status(500).json({ success: false, message: 'Failed to duplicate listing' });
+    }
+};
 // GET ALL LISTINGS (Public - Browse)
 // @route   GET /api/listings
 export const getListings = async (req: IAuthRequest, res: Response): Promise<void> => {
@@ -413,6 +499,7 @@ export const updateListing = async (req: IAuthRequest, res: Response): Promise<v
         }
 
         listing.updatedAt = new Date();
+        listing.duplicatedFrom = undefined
         await listing.save();
 
         res.json({
@@ -839,7 +926,7 @@ export const requestSellerCall = async (req: IAuthRequest, res: Response): Promi
                 await LeadModel.findByIdAndUpdate(lead._id, {
                     smsSent: result.success,
                     smsMessageId: result.message,
-                  
+
                     $push: {
                         notifications: {
                             channel: ENotificationChannel.SMS,

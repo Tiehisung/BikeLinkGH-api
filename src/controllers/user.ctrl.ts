@@ -3,9 +3,7 @@ import ListingModel from '../models/listing.model';
 import UserModel from '../models/user.model';
 import { IAuthRequest, IApiResponse, IPagination } from '../types';
 
-// ============================================
 // GET ALL USERS (with filters, pagination, search)
-// ============================================
 export const getAllUsers = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const {
@@ -106,9 +104,7 @@ export const getAllUsers = async (req: IAuthRequest, res: Response): Promise<voi
     }
 };
 
-// ============================================
 // GET SINGLE USER DETAIL
-// ============================================
 export const getUserById = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const user = await UserModel.findById(req.params.id)
@@ -150,9 +146,7 @@ export const getUserById = async (req: IAuthRequest, res: Response): Promise<voi
     }
 };
 
-// ============================================
 // UPDATE USER (Admin)
-// ============================================
 export const adminUpdateUser = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
@@ -194,9 +188,7 @@ export const adminUpdateUser = async (req: IAuthRequest, res: Response): Promise
     }
 };
 
-// ============================================
 // TOGGLE USER ACTIVE STATUS (Ban/Unban)
-// ============================================
 export const toggleUserActive = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
@@ -225,9 +217,7 @@ export const toggleUserActive = async (req: IAuthRequest, res: Response): Promis
     }
 };
 
-// ============================================
 // VERIFY USER (Approve Ghana Card)
-// ============================================
 export const verifyUser = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const user = await UserModel.findByIdAndUpdate(
@@ -251,9 +241,7 @@ export const verifyUser = async (req: IAuthRequest, res: Response): Promise<void
     }
 };
 
-// ============================================
 // DELETE USER
-// ============================================
 export const deleteUser = async (req: IAuthRequest, res: Response): Promise<void> => {
     try {
         const { id } = req.params;

@@ -5,6 +5,7 @@ import {
     getContactById,
     updateContactStatus,
     deleteContact,
+    updateContactCategory,
 } from '../controllers/contact.ctrl';
 import { authenticate, authorize } from '../middleware/auth.middleware';
 
@@ -20,6 +21,7 @@ router.use(authorize('admin'))
 router.get('/',  getAllContacts);
 router.get('/:id',  getContactById);
 router.patch('/:id/status',  updateContactStatus);
+router.patch('/:id/category',  updateContactCategory);
 router.delete('/:id',  deleteContact);
 
 export default router;
